@@ -22,6 +22,9 @@ Google Places API (New) operations:
 
    ```powershell
    $env:GOOGLE_MAPS_API_KEY = "your-api-key"
+   $env:OPENROUTER_API_KEY = "your-openrouter-key"
+   # Optional; defaults to openai/gpt-4.1-mini
+   $env:OPENROUTER_MODEL = "openai/gpt-4.1-mini"
    ```
 
 4. Start the API:
@@ -30,7 +33,32 @@ Google Places API (New) operations:
    uv run python main.py
    ```
 
-Open `http://127.0.0.1:8000/docs` to test both endpoints interactively.
+Open `http://127.0.0.1:8000/docs` to inspect and test the API routes.
+
+## Agent API
+
+`POST /agent/chat` runs a single AskAround agent through OpenRouter using the
+OpenAI Agents SDK. The response is a Server-Sent Events stream so callers can
+observe the run as it happens. The stream emits:
+
+- `agent_started` with the agent name, model, and input.
+- `raw_response_event` for each raw SDK model event.
+- `agent_step` for messages, reasoning items, and future tool activity.
+- `agent_completed` with the validated `AgentAnswer` output.
+- `agent_error` with a clear exception type and message if the run fails.
+
+Test the streaming endpoint from PowerShell:
+
+```powershell
+curl.exe -N `
+  -X POST http://127.0.0.1:8000/agent/chat `
+  -H "Content-Type: application/json" `
+  -d '{"message":"What can you help me with?"}'
+```
+
+All stream events are also printed to the API process stdout for debugging.
+This first agent intentionally has no tools; Google Places tools are the next
+integration step.
 
 ## Examples
 

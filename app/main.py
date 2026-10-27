@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import ConfigurationError
 from app.constants import GOOGLE_API_TIMEOUT_SECONDS
+from app.routers.agent import router as agent_router
 from app.routers.places import router as places_router
 from app.services.google_places import GooglePlacesError
 
@@ -32,6 +33,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(places_router)
+app.include_router(agent_router)
 
 
 @app.exception_handler(ConfigurationError)
