@@ -1,0 +1,1 @@
+"""Nearby Locator application package."""

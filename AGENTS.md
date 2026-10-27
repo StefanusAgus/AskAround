@@ -1,0 +1,12 @@
+Follow this principle when working on this repository:
+- Keep it simple. Always keep your implementation simple and clear. Avoid code duplication, avoid introducing unnecessary complexities
+- Clear folder structure. For example, having a clear constants.py to store constants. prompts.py. Clear structuring of tools, etc.
+- When creating an agent workflow, use openai agents SDK as the main harness (use latest stable version). Keep the agent output to be streamable.
+- For each agent steps, including tool call, reasoning, etc. Keep them very verbose. Meaning, display them into the frontend as is, display them in the stdout as well. Print out what's the reasoning, what's the parameter, what's the output. This also applies to the agent steps. We want clear full visibilities.
+- Always use clear structured output with clear fields. Make use of Pydantic basemodel for this.
+- In each implementation steps, make sure that it is human testable. For example, when making API endpoints, make it so that I can test clearly. 
+- After generating the code, please also provide me with a clear commit message for me to push.
+- Also generate a clear .gitignore. We should only push the relevant piece of code. Do not push documentation which purposes is for our own tracking.
+- For backend API, make use of Fast API.
+- Always print out any exception clearly. This would help us to debug. Don't let anything fail silently or without clear exception trace.
+- When implementing using Google Maps API, please be aware of the free tier usage limit
