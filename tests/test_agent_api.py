@@ -223,7 +223,7 @@ async def test_single_agent_has_both_google_tools() -> None:
 @pytest.mark.asyncio
 async def test_agent_service_starts_without_calling_openrouter() -> None:
     service = AgentService(
-        OpenRouterSettings(api_key="test-key", model="openai/gpt-4.1-mini"),
+        OpenRouterSettings(api_key="test-key", model="openai/gpt-5.6-luna"),
         FakeGooglePlacesService(),
     )
     stream = service.stream("Hello", "test-session")
@@ -232,7 +232,7 @@ async def test_agent_service_starts_without_calling_openrouter() -> None:
     await stream.aclose()
 
     assert event.event == "agent_started"
-    assert event.data["model"] == "openai/gpt-4.1-mini"
+    assert event.data["model"] == "openai/gpt-5.6-luna"
     assert event.data["session_id"] == "test-session"
 
 
@@ -327,7 +327,7 @@ async def test_nearby_tool_returns_structured_results() -> None:
         "Wednesday: 11:00 AM - 10:00 PM"
     ]
     assert nearby.matches[0].price_level == "PRICE_LEVEL_MODERATE"
-    assert nearby.matches[0].price_range["startPrice"]["units"] == "15"
+    assert nearby.matches[0].price_range.start_price.units == 15
 
 
 def test_agent_prompt_includes_current_time_and_response_requirements() -> None:

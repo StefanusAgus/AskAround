@@ -1,12 +1,19 @@
 from enum import Enum
-from typing import Any, List, Optional
+from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from app.constants import (
     DEFAULT_LANGUAGE_CODE,
     DEFAULT_REGION_CODE,
     GOOGLE_PLACE_FILTER_TYPES,
+    ISO_3166_ALPHA_2_REGION_CODES,
 )
 
 
@@ -20,8 +27,8 @@ class DisplayName(ApiModel):
 
 
 class Coordinates(ApiModel):
-    latitude: float
-    longitude: float
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
 
 
 class OpeningHours(ApiModel):
@@ -31,8 +38,39 @@ class OpeningHours(ApiModel):
     )
 
 
+class Money(ApiModel):
+    currency_code: str = Field(alias="currencyCode", min_length=3, max_length=3)
+    units: int = 0
+    nanos: int = Field(default=0, ge=-999_999_999, le=999_999_999)
+
+    @field_validator("currency_code")
+    @classmethod
+    def normalize_currency_code(cls, value: str) -> str:
+        return value.upper()
+
+
+class PriceRange(ApiModel):
+    start_price: Optional[Money] = Field(default=None, alias="startPrice")
+    end_price: Optional[Money] = Field(default=None, alias="endPrice")
+
+    @model_validator(mode="after")
+    def require_price_bound(self) -> "PriceRange":
+        if self.start_price is None and self.end_price is None:
+            raise ValueError("priceRange requires startPrice or endPrice")
+        return self
+
+
+class PriceLevel(str, Enum):
+    unspecified = "PRICE_LEVEL_UNSPECIFIED"
+    free = "PRICE_LEVEL_FREE"
+    inexpensive = "PRICE_LEVEL_INEXPENSIVE"
+    moderate = "PRICE_LEVEL_MODERATE"
+    expensive = "PRICE_LEVEL_EXPENSIVE"
+    very_expensive = "PRICE_LEVEL_VERY_EXPENSIVE"
+
+
 class Place(ApiModel):
-    id: str
+    id: str = Field(min_length=1)
     display_name: Optional[DisplayName] = Field(default=None, alias="displayName")
     formatted_address: Optional[str] = Field(default=None, alias="formattedAddress")
     location: Optional[Coordinates] = None
@@ -50,10 +88,14 @@ class Place(ApiModel):
     regular_opening_hours: Optional[OpeningHours] = Field(
         default=None, alias="regularOpeningHours"
     )
-    rating: Optional[float] = None
-    user_rating_count: Optional[int] = Field(default=None, alias="userRatingCount")
-    price_range: Optional[Any] = Field(default=None, alias="priceRange")
-    price_level: Optional[str] = Field(default=None, alias="priceLevel")
+    rating: Optional[float] = Field(default=None, ge=0, le=5)
+    user_rating_count: Optional[int] = Field(
+        default=None,
+        alias="userRatingCount",
+        ge=0,
+    )
+    price_range: Optional[PriceRange] = Field(default=None, alias="priceRange")
+    price_level: Optional[PriceLevel] = Field(default=None, alias="priceLevel")
 
 
 class PlaceSearchRequest(ApiModel):
@@ -77,11 +119,32 @@ class PlaceSearchRequest(ApiModel):
         description="Two-letter result region. Defaults to Singapore (SG).",
     )
 
+    @field_validator("query")
+    @classmethod
+    def strip_query(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("query must not be blank")
+        return value.strip()
+
+    @field_validator("region_code")
+    @classmethod
+    def validate_region_code(cls, value: str) -> str:
+        normalized = value.upper()
+        if normalized not in ISO_3166_ALPHA_2_REGION_CODES:
+            raise ValueError("regionCode must be an ISO 3166-1 alpha-2 code")
+        return normalized
+
 
 class PlaceSearchResponse(ApiModel):
     query: str
-    count: int
+    count: int = Field(ge=0)
     places: List[Place]
+
+    @model_validator(mode="after")
+    def validate_count(self) -> "PlaceSearchResponse":
+        if self.count != len(self.places):
+            raise ValueError("count must equal the number of places")
+        return self
 
 
 class RankPreference(str, Enum):
@@ -124,9 +187,23 @@ class NearbySearchRequest(ApiModel):
             )
         return normalized
 
+    @field_validator("region_code")
+    @classmethod
+    def validate_region_code(cls, value: str) -> str:
+        normalized = value.upper()
+        if normalized not in ISO_3166_ALPHA_2_REGION_CODES:
+            raise ValueError("region_code must be an ISO 3166-1 alpha-2 code")
+        return normalized
+
 
 class NearbySearchResponse(ApiModel):
     center: Coordinates
     radius_meters: float
-    count: int
+    count: int = Field(ge=0)
     places: List[Place]
+
+    @model_validator(mode="after")
+    def validate_count(self) -> "NearbySearchResponse":
+        if self.count != len(self.places):
+            raise ValueError("count must equal the number of places")
+        return self

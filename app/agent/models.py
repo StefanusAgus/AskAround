@@ -1,9 +1,16 @@
+import re
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.models import OpeningHours
+from app.models import OpeningHours, PriceLevel, PriceRange
+
+
+GOOGLE_MAPS_LINK_LABEL = "[View on Google Maps]"
+GOOGLE_MAPS_LINK_PATTERN = re.compile(
+    r"\[View on Google Maps\]\(https://www\.google\.com/maps/[^\s)]+\)"
+)
 
 
 class AgentModel(BaseModel):
@@ -28,11 +35,26 @@ class AgentChatRequest(AgentModel):
 
 class AgentAnswer(AgentModel):
     answer: str = Field(
+        min_length=1,
+        max_length=50_000,
         description=(
             "The agent's user-facing response in safe Markdown, including "
             "ranked place names and Google Maps links when available."
         )
     )
+
+    @field_validator("answer")
+    @classmethod
+    def validate_answer_markdown(cls, value: str) -> str:
+        answer = value.strip()
+        label_count = answer.count(GOOGLE_MAPS_LINK_LABEL)
+        valid_link_count = len(GOOGLE_MAPS_LINK_PATTERN.findall(answer))
+        if label_count != valid_link_count:
+            raise ValueError(
+                "Every Google Maps label must contain one valid, single-line "
+                "https://www.google.com/maps/ Markdown link"
+            )
+        return answer
 
 
 class PlaceCandidate(AgentModel):
@@ -43,16 +65,16 @@ class PlaceCandidate(AgentModel):
     longitude: Optional[float] = None
     primary_type: Optional[str] = None
     types: List[str] = Field(default_factory=list)
-    rating: Optional[float] = None
-    user_rating_count: Optional[int] = None
+    rating: Optional[float] = Field(default=None, ge=0, le=5)
+    user_rating_count: Optional[int] = Field(default=None, ge=0)
     google_maps_uri: Optional[str] = None
     national_phone_number: Optional[str] = None
     website_uri: Optional[str] = None
     current_opening_hours: Optional[OpeningHours] = None
     regular_opening_hours: Optional[OpeningHours] = None
     open_now: Optional[bool] = None
-    price_level: Optional[str] = None
-    price_range: Optional[Any] = None
+    price_level: Optional[PriceLevel] = None
+    price_range: Optional[PriceRange] = None
 
 
 class LocationSearchToolResult(AgentModel):
@@ -60,6 +82,12 @@ class LocationSearchToolResult(AgentModel):
     region_code: str
     match_count: int
     matches: List[PlaceCandidate]
+
+    @model_validator(mode="after")
+    def validate_match_count(self) -> "LocationSearchToolResult":
+        if self.match_count != len(self.matches):
+            raise ValueError("match_count must equal the number of matches")
+        return self
 
 
 class NearbySearchToolResult(AgentModel):
@@ -69,6 +97,12 @@ class NearbySearchToolResult(AgentModel):
     radius_meters: float
     match_count: int
     matches: List[PlaceCandidate]
+
+    @model_validator(mode="after")
+    def validate_match_count(self) -> "NearbySearchToolResult":
+        if self.match_count != len(self.matches):
+            raise ValueError("match_count must equal the number of matches")
+        return self
 
 
 class AgentStreamEvent(AgentModel):

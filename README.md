@@ -1,11 +1,9 @@
 # AskAround
 
-A conversational place-discovery project. Its FastAPI service exposes three
-Google Places API (New) operations:
+A conversational place-discovery project based on Agentic conversational workflow and tools built on top of Google Places API:
 
 - Text Search resolves postcodes, addresses, landmarks, and text queries.
 - Nearby Search finds points of interest around known coordinates.
-- Place Details retrieves richer information for a selected place ID.
 
 ## Setup
 
@@ -23,8 +21,8 @@ Google Places API (New) operations:
    ```powershell
    $env:GOOGLE_MAPS_API_KEY = "your-api-key"
    $env:OPENROUTER_API_KEY = "your-openrouter-key"
-   # Optional; defaults to openai/gpt-4.1-mini
-   $env:OPENROUTER_MODEL = "openai/gpt-4.1-mini"
+   # Optional; defaults to openai/gpt-5.6-luna
+   $env:OPENROUTER_MODEL = "openai/gpt-5.6-luna"
    ```
 
 4. Start the API:
@@ -38,7 +36,7 @@ Open `http://127.0.0.1:8000/docs` to inspect and test the API routes.
 ## Agent API
 
 `POST /agent/chat` runs one AskAround agent through OpenRouter using the OpenAI
-Agents SDK. There are no handoffs or nested agents. AskAround directly owns:
+Agents SDK:
 
 - Google Places Text Search to resolve postcodes, addresses, and landmarks.
 - Nearby Search to find points of interest around resolved coordinates.
@@ -152,6 +150,17 @@ Run automated tests without making live Google API requests:
 ```powershell
 uv run pytest
 ```
+
+Run the fixture-backed agent evaluation suite with the configured OpenRouter
+model. These evaluations do not call Google Places:
+
+```powershell
+uv run python -m evals.runner
+```
+
+Add `--judge` to run the optional LLM-as-a-judge grader, or use `--case
+location_not_found` to run one scenario. See `evals/README.md` for the covered
+behaviors and report location.
 
 Google bills Places API requests according to the highest SKU associated with
 the requested fields. The field masks are intentionally explicit in

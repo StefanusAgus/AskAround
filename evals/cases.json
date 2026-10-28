@@ -1,0 +1,343 @@
+[
+  {
+    "id": "library_near_postcode",
+    "description": "Resolve a Singapore postcode before finding and ranking libraries.",
+    "prompt": "Find libraries near 398371 Singapore",
+    "text_results": [
+      {
+        "id": "anchor-398371",
+        "displayName": {"text": "Singapore 398371"},
+        "formattedAddress": "Singapore 398371",
+        "location": {"latitude": 1.3118129, "longitude": 103.886346},
+        "types": ["postal_code"]
+      }
+    ],
+    "nearby_results": {
+      "library": [
+        {
+          "id": "library-1",
+          "displayName": {"text": "Geylang East Public Library"},
+          "formattedAddress": "50 Geylang East Ave 1, Singapore 389777",
+          "location": {"latitude": 1.3176, "longitude": 103.8861},
+          "types": ["library"],
+          "primaryType": "library",
+          "rating": 4.7,
+          "userRatingCount": 310,
+          "regularOpeningHours": {
+            "openNow": true,
+            "weekdayDescriptions": ["Wednesday: 10:00 AM - 9:00 PM"]
+          }
+        },
+        {
+          "id": "library-2",
+          "displayName": {"text": "Library@Paya Lebar"},
+          "formattedAddress": "10 Paya Lebar Rd, Singapore 409057",
+          "location": {"latitude": 1.3188, "longitude": 103.8929},
+          "types": ["library"],
+          "primaryType": "library",
+          "rating": 4.5,
+          "userRatingCount": 180,
+          "regularOpeningHours": {
+            "openNow": true,
+            "weekdayDescriptions": ["Wednesday: 10:00 AM - 9:00 PM"]
+          }
+        },
+        {
+          "id": "library-3",
+          "displayName": {"text": "Community Reading Room"},
+          "formattedAddress": "1 Sims Ave, Singapore 387355",
+          "location": {"latitude": 1.314, "longitude": 103.879},
+          "types": ["library"],
+          "primaryType": "library",
+          "rating": 4.2,
+          "userRatingCount": 75,
+          "regularOpeningHours": {
+            "openNow": false,
+            "weekdayDescriptions": ["Wednesday: 1:00 PM - 6:00 PM"]
+          }
+        }
+      ]
+    },
+    "expected": {
+      "region_code": "SG",
+      "location_query_contains": ["398371", "Singapore"],
+      "nearby_type_options": [["library"]],
+      "expected_recommendations": 3,
+      "require_ranked_results": true,
+      "require_opening_hours": true
+    }
+  },
+  {
+    "id": "multi_stop_suntec",
+    "description": "Resolve one anchor and make separate Nearby Search calls for two itinerary categories.",
+    "prompt": "I want sushi and then a library near Suntec City Singapore. Suggest options for both.",
+    "text_results": [
+      {
+        "id": "anchor-suntec",
+        "displayName": {"text": "Suntec City"},
+        "formattedAddress": "3 Temasek Blvd, Singapore 038983",
+        "location": {"latitude": 1.2936, "longitude": 103.8572},
+        "types": ["shopping_mall"]
+      }
+    ],
+    "nearby_results": {
+      "sushi_restaurant": [
+        {
+          "id": "sushi-1",
+          "displayName": {"text": "Sushi Alpha"},
+          "formattedAddress": "1 Temasek Blvd, Singapore",
+          "types": ["sushi_restaurant", "restaurant"],
+          "primaryType": "sushi_restaurant",
+          "rating": 4.8,
+          "userRatingCount": 800,
+          "priceLevel": "PRICE_LEVEL_MODERATE",
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 11:00 AM - 10:00 PM"]}
+        },
+        {
+          "id": "sushi-2",
+          "displayName": {"text": "Sushi Beta"},
+          "formattedAddress": "2 Temasek Blvd, Singapore",
+          "types": ["sushi_restaurant", "restaurant"],
+          "primaryType": "sushi_restaurant",
+          "rating": 4.6,
+          "userRatingCount": 500,
+          "priceLevel": "PRICE_LEVEL_INEXPENSIVE",
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 10:30 AM - 9:30 PM"]}
+        },
+        {
+          "id": "sushi-3",
+          "displayName": {"text": "Sushi Gamma"},
+          "formattedAddress": "3 Temasek Blvd, Singapore",
+          "types": ["sushi_restaurant", "restaurant"],
+          "primaryType": "sushi_restaurant",
+          "rating": 4.3,
+          "userRatingCount": 250,
+          "priceLevel": "PRICE_LEVEL_MODERATE",
+          "regularOpeningHours": {"openNow": false, "weekdayDescriptions": ["Wednesday: 12:00 PM - 8:00 PM"]}
+        }
+      ],
+      "library": [
+        {
+          "id": "suntec-library-1",
+          "displayName": {"text": "Esplanade Public Library"},
+          "formattedAddress": "8 Raffles Ave, Singapore",
+          "types": ["library"],
+          "primaryType": "library",
+          "rating": 4.7,
+          "userRatingCount": 420,
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 11:00 AM - 9:00 PM"]}
+        },
+        {
+          "id": "suntec-library-2",
+          "displayName": {"text": "City Reading Library"},
+          "formattedAddress": "6 Raffles Blvd, Singapore",
+          "types": ["library"],
+          "primaryType": "library",
+          "rating": 4.4,
+          "userRatingCount": 190,
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 10:00 AM - 8:00 PM"]}
+        },
+        {
+          "id": "suntec-library-3",
+          "displayName": {"text": "Marina Community Library"},
+          "formattedAddress": "9 Raffles Blvd, Singapore",
+          "types": ["library"],
+          "primaryType": "library",
+          "rating": 4.1,
+          "userRatingCount": 80,
+          "regularOpeningHours": {"openNow": false, "weekdayDescriptions": ["Wednesday: 9:00 AM - 5:00 PM"]}
+        }
+      ]
+    },
+    "expected": {
+      "region_code": "SG",
+      "location_query_contains": ["Suntec City", "Singapore"],
+      "nearby_type_options": [["sushi_restaurant"], ["library"]],
+      "expected_recommendations": 6,
+      "require_ranked_results": true,
+      "require_opening_hours": true,
+      "require_restaurant_details": false
+    }
+  },
+  {
+    "id": "nasi_lemak_type_reasoning",
+    "description": "Use a valid broader cuisine type rather than inventing nasi_restaurant.",
+    "prompt": "Recommend nasi lemak near Yishun MRT Singapore",
+    "text_results": [
+      {
+        "id": "anchor-yishun",
+        "displayName": {"text": "Yishun MRT Station"},
+        "formattedAddress": "301 Yishun Ave 2, Singapore 769093",
+        "location": {"latitude": 1.4294, "longitude": 103.8354},
+        "types": ["subway_station"]
+      }
+    ],
+    "nearby_results": {
+      "malaysian_restaurant": [
+        {
+          "id": "nasi-1",
+          "displayName": {"text": "Yishun Malaysian Kitchen"},
+          "formattedAddress": "1 Northpoint Dr, Singapore",
+          "types": ["malaysian_restaurant", "restaurant"],
+          "primaryType": "malaysian_restaurant",
+          "rating": 4.8,
+          "userRatingCount": 320,
+          "priceRange": {"startPrice": {"currencyCode": "SGD", "units": "5"}, "endPrice": {"currencyCode": "SGD", "units": "15"}},
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 8:00 AM - 9:00 PM"]}
+        },
+        {
+          "id": "nasi-2",
+          "displayName": {"text": "Northside Malay Cuisine"},
+          "formattedAddress": "2 Yishun Ave 2, Singapore",
+          "types": ["malaysian_restaurant", "restaurant"],
+          "primaryType": "malaysian_restaurant",
+          "rating": 4.5,
+          "userRatingCount": 210,
+          "priceLevel": "PRICE_LEVEL_INEXPENSIVE",
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 7:00 AM - 8:00 PM"]}
+        },
+        {
+          "id": "nasi-3",
+          "displayName": {"text": "Kampung Flavours"},
+          "formattedAddress": "3 Yishun Ring Rd, Singapore",
+          "types": ["malaysian_restaurant", "restaurant"],
+          "primaryType": "malaysian_restaurant",
+          "rating": 4.2,
+          "userRatingCount": 100,
+          "priceLevel": "PRICE_LEVEL_INEXPENSIVE",
+          "regularOpeningHours": {"openNow": false, "weekdayDescriptions": ["Wednesday: 7:00 AM - 3:00 PM"]}
+        }
+      ],
+      "restaurant": [
+        {
+          "id": "nasi-1",
+          "displayName": {"text": "Yishun Malaysian Kitchen"},
+          "formattedAddress": "1 Northpoint Dr, Singapore",
+          "types": ["malaysian_restaurant", "restaurant"],
+          "primaryType": "malaysian_restaurant",
+          "rating": 4.8,
+          "userRatingCount": 320,
+          "priceRange": {"startPrice": {"currencyCode": "SGD", "units": "5"}, "endPrice": {"currencyCode": "SGD", "units": "15"}},
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 8:00 AM - 9:00 PM"]}
+        },
+        {
+          "id": "nasi-2",
+          "displayName": {"text": "Northside Malay Cuisine"},
+          "formattedAddress": "2 Yishun Ave 2, Singapore",
+          "types": ["malaysian_restaurant", "restaurant"],
+          "primaryType": "malaysian_restaurant",
+          "rating": 4.5,
+          "userRatingCount": 210,
+          "priceLevel": "PRICE_LEVEL_INEXPENSIVE",
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 7:00 AM - 8:00 PM"]}
+        },
+        {
+          "id": "nasi-3",
+          "displayName": {"text": "Kampung Flavours"},
+          "formattedAddress": "3 Yishun Ring Rd, Singapore",
+          "types": ["malaysian_restaurant", "restaurant"],
+          "primaryType": "malaysian_restaurant",
+          "rating": 4.2,
+          "userRatingCount": 100,
+          "priceLevel": "PRICE_LEVEL_INEXPENSIVE",
+          "regularOpeningHours": {"openNow": false, "weekdayDescriptions": ["Wednesday: 7:00 AM - 3:00 PM"]}
+        }
+      ]
+    },
+    "expected": {
+      "region_code": "SG",
+      "location_query_contains": ["Yishun MRT", "Singapore"],
+      "nearby_type_options": [["malaysian_restaurant", "restaurant"]],
+      "forbidden_types": ["nasi_restaurant", "nasi_lemak_restaurant"],
+      "expected_recommendations": 3,
+      "require_ranked_results": true,
+      "require_opening_hours": true,
+      "require_restaurant_details": true
+    }
+  },
+  {
+    "id": "hotpot_default_top_three",
+    "description": "Return three grounded restaurant recommendations with price, hours, and Maps links.",
+    "prompt": "Find hotpot near Tampines MRT Singapore",
+    "text_results": [
+      {
+        "id": "anchor-tampines",
+        "displayName": {"text": "Tampines MRT Station"},
+        "formattedAddress": "20 Tampines Central 1, Singapore 529538",
+        "location": {"latitude": 1.3531, "longitude": 103.9452},
+        "types": ["subway_station"]
+      }
+    ],
+    "nearby_results": {
+      "hot_pot_restaurant": [
+        {
+          "id": "hotpot-1",
+          "displayName": {"text": "Tampines Hotpot One"},
+          "formattedAddress": "1 Tampines Central, Singapore",
+          "types": ["hot_pot_restaurant", "restaurant"],
+          "primaryType": "hot_pot_restaurant",
+          "rating": 4.9,
+          "userRatingCount": 1200,
+          "priceRange": {"startPrice": {"currencyCode": "SGD", "units": "20"}, "endPrice": {"currencyCode": "SGD", "units": "40"}},
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 11:00 AM - 11:00 PM"]}
+        },
+        {
+          "id": "hotpot-2",
+          "displayName": {"text": "Tampines Hotpot Two"},
+          "formattedAddress": "2 Tampines Central, Singapore",
+          "types": ["hot_pot_restaurant", "restaurant"],
+          "primaryType": "hot_pot_restaurant",
+          "rating": 4.6,
+          "userRatingCount": 800,
+          "priceLevel": "PRICE_LEVEL_MODERATE",
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 11:30 AM - 10:00 PM"]}
+        },
+        {
+          "id": "hotpot-3",
+          "displayName": {"text": "Tampines Hotpot Three"},
+          "formattedAddress": "3 Tampines Central, Singapore",
+          "types": ["hot_pot_restaurant", "restaurant"],
+          "primaryType": "hot_pot_restaurant",
+          "rating": 4.4,
+          "userRatingCount": 500,
+          "priceLevel": "PRICE_LEVEL_INEXPENSIVE",
+          "regularOpeningHours": {"openNow": false, "weekdayDescriptions": ["Wednesday: 5:00 PM - 10:00 PM"]}
+        },
+        {
+          "id": "hotpot-4",
+          "displayName": {"text": "Tampines Hotpot Four"},
+          "formattedAddress": "4 Tampines Central, Singapore",
+          "types": ["hot_pot_restaurant", "restaurant"],
+          "primaryType": "hot_pot_restaurant",
+          "rating": 4.0,
+          "userRatingCount": 100,
+          "priceLevel": "PRICE_LEVEL_MODERATE",
+          "regularOpeningHours": {"openNow": true, "weekdayDescriptions": ["Wednesday: 12:00 PM - 9:00 PM"]}
+        }
+      ]
+    },
+    "expected": {
+      "region_code": "SG",
+      "location_query_contains": ["Tampines MRT", "Singapore"],
+      "nearby_type_options": [["hot_pot_restaurant"]],
+      "expected_recommendations": 3,
+      "require_ranked_results": true,
+      "require_opening_hours": true,
+      "require_restaurant_details": true
+    }
+  },
+  {
+    "id": "location_not_found",
+    "description": "Stop after Text Search and clearly explain when the anchor cannot be resolved.",
+    "prompt": "Find cafes near Imaginary Place ZZZ999 Singapore",
+    "text_results": [],
+    "nearby_results": {},
+    "expected": {
+      "region_code": "SG",
+      "location_query_contains": ["Imaginary Place ZZZ999", "Singapore"],
+      "nearby_type_options": [],
+      "expected_recommendations": 0,
+      "location_not_found": true
+    }
+  }
+]
