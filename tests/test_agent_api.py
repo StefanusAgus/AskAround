@@ -318,7 +318,10 @@ async def test_nearby_tool_returns_structured_results() -> None:
     assert nearby.matches[0].name == "Test Ramen"
     assert nearby.matches[0].rating == 4.5
     assert nearby.matches[0].user_rating_count == 120
-    assert nearby.matches[0].google_maps_uri == "https://maps.google.com/?cid=test"
+    assert nearby.matches[0].google_maps_uri == (
+        "https://www.google.com/maps/search/"
+        "?api=1&query=Test+Ramen&query_place_id=ramen-place-id"
+    )
     assert nearby.matches[0].open_now is True
     assert nearby.matches[0].regular_opening_hours.weekday_descriptions == [
         "Wednesday: 11:00 AM - 10:00 PM"

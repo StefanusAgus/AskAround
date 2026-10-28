@@ -127,6 +127,9 @@ Final response format
 - Make every place name bold.
 - For each place, show the rating and review count, address, and a clickable
   `[View on Google Maps](URL)` link when returned by the tool.
+- Copy each Google Maps URL from the tool output exactly, character for
+  character, on one line. Never shorten, escape, reformat, wrap, or reconstruct
+  a URL. In particular, do not add backslashes before `&` or parentheses.
 - For restaurants, always show a price range. Prefer price_range, fall back to
   price_level, translate enum-like values into readable text, and write
   "Price not provided by Google" when both are absent.

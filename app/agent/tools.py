@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlencode
 
 from agents import RunContextWrapper, function_tool
 
@@ -53,6 +54,22 @@ def _clean_tool_string(value: str) -> str:
     return value.strip().strip("\\\"'").strip()
 
 
+def _build_google_maps_url(place: Place) -> str:
+    query = (
+        place.display_name.text
+        if place.display_name
+        else place.formatted_address or place.id
+    )
+    parameters = urlencode(
+        {
+            "api": "1",
+            "query": query,
+            "query_place_id": place.id,
+        }
+    )
+    return f"https://www.google.com/maps/search/?{parameters}"
+
+
 def _to_place_candidate(place: Place) -> PlaceCandidate:
     return PlaceCandidate(
         place_id=place.id,
@@ -64,7 +81,7 @@ def _to_place_candidate(place: Place) -> PlaceCandidate:
         types=place.types,
         rating=place.rating,
         user_rating_count=place.user_rating_count,
-        google_maps_uri=place.google_maps_uri,
+        google_maps_uri=_build_google_maps_url(place),
         national_phone_number=place.national_phone_number,
         website_uri=place.website_uri,
         current_opening_hours=place.current_opening_hours,
