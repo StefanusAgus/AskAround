@@ -60,6 +60,38 @@ All stream events are also printed to the API process stdout for debugging.
 This first agent intentionally has no tools; Google Places tools are the next
 integration step.
 
+## Chat interface
+
+The `frontend` directory contains a small Vue/Vite single-page chat interface.
+It displays each assistant answer with a collapsible, unfiltered execution
+trace. A conversation keeps the same `session_id` across messages, while the
+**New chat** button clears the screen and creates a new backend session.
+
+Run the backend in one PowerShell terminal:
+
+```powershell
+uv run python main.py
+```
+
+Run the frontend in a second terminal:
+
+```powershell
+Set-Location frontend
+npm install
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`. Vite proxies `/api` requests to FastAPI at
+`http://127.0.0.1:8000`. For a separately hosted frontend, set
+`VITE_API_BASE_URL` to the public backend URL before building.
+
+Create a production frontend bundle with:
+
+```powershell
+Set-Location frontend
+npm run build
+```
+
 ## Examples
 
 Find the top three candidates for a postcode or address:

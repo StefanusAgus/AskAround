@@ -4,14 +4,20 @@ import logging
 from dataclasses import fields, is_dataclass
 from typing import Any, AsyncIterator
 
-from agents import Agent, OpenAIChatCompletionsModel, Runner, set_tracing_disabled
+from agents import (
+    Agent,
+    OpenAIChatCompletionsModel,
+    Runner,
+    SQLiteSession,
+    set_tracing_disabled,
+)
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from app.agent.models import AgentAnswer, AgentStreamEvent
 from app.agent.prompts import NEARBY_ASSISTANT_INSTRUCTIONS
 from app.config import OpenRouterSettings
-from app.constants import OPENROUTER_BASE_URL
+from app.constants import AGENT_SESSION_DB_PATH, OPENROUTER_BASE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +30,11 @@ class AgentService:
     def __init__(self, settings: OpenRouterSettings) -> None:
         self._settings = settings
 
-    async def stream(self, message: str) -> AsyncIterator[AgentStreamEvent]:
+    async def stream(
+        self, message: str, session_id: str
+    ) -> AsyncIterator[AgentStreamEvent]:
+        AGENT_SESSION_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        session = SQLiteSession(session_id, AGENT_SESSION_DB_PATH)
         client = AsyncOpenAI(
             api_key=self._settings.api_key,
             base_url=OPENROUTER_BASE_URL,
@@ -50,20 +60,29 @@ class AgentService:
                     "agent": agent.name,
                     "model": self._settings.model,
                     "input": message,
+                    "session_id": session_id,
                 },
             )
 
-            result = Runner.run_streamed(agent, message, max_turns=1)
+            result = Runner.run_streamed(
+                agent,
+                message,
+                max_turns=1,
+                session=session,
+            )
             async for stream_event in result.stream_events():
                 if stream_event.type == "raw_response_event":
+                    event_type = getattr(
+                        stream_event.data,
+                        "type",
+                        type(stream_event.data).__name__,
+                    )
+                    if self._is_delta_event(event_type):
+                        continue
                     yield self._event(
                         "raw_response_event",
                         {
-                            "type": getattr(
-                                stream_event.data,
-                                "type",
-                                type(stream_event.data).__name__,
-                            ),
+                            "type": event_type,
                             "data": self._jsonable(stream_event.data),
                         },
                     )
@@ -98,6 +117,7 @@ class AgentService:
                 {"error": type(exc).__name__, "detail": str(exc)},
             )
         finally:
+            session.close()
             await client.close()
 
     @staticmethod
@@ -126,6 +146,10 @@ class AgentService:
             "agent": getattr(agent, "name", None),
             "raw_item": AgentService._jsonable(getattr(item, "raw_item", None)),
         }
+
+    @staticmethod
+    def _is_delta_event(event_type: str) -> bool:
+        return event_type.endswith(".delta")
 
     @staticmethod
     def _event(event: str, data: dict[str, Any]) -> AgentStreamEvent:

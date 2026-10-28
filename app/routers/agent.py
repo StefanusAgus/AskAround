@@ -30,7 +30,7 @@ async def chat_with_agent(
     service: Annotated[AgentService, Depends(get_agent_service)],
 ) -> StreamingResponse:
     async def event_stream() -> AsyncIterator[str]:
-        async for stream_event in service.stream(request.message):
+        async for stream_event in service.stream(request.message, request.session_id):
             yield format_sse(stream_event)
 
     return StreamingResponse(

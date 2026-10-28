@@ -1,9 +1,13 @@
+from pathlib import Path
+
+
 GOOGLE_PLACES_BASE_URL = "https://places.googleapis.com/v1"
 GOOGLE_API_TIMEOUT_SECONDS = 10.0
 DEFAULT_LANGUAGE_CODE = "en"
 DEFAULT_REGION_CODE = "SG"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_OPENROUTER_MODEL = "openai/gpt-4.1-mini"
+AGENT_SESSION_DB_PATH = Path("data/agent_sessions.db")
 
 # Google Places API (New) place types:
 # https://developers.google.com/maps/documentation/places/web-service/place-types

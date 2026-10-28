@@ -13,10 +13,16 @@ from app.routers.agent import get_agent_service
 
 
 class FakeAgentService:
-    async def stream(self, message: str) -> AsyncIterator[AgentStreamEvent]:
+    async def stream(
+        self, message: str, session_id: str
+    ) -> AsyncIterator[AgentStreamEvent]:
         yield AgentStreamEvent(
             event="agent_started",
-            data={"agent": "AskAround Assistant", "input": message},
+            data={
+                "agent": "AskAround Assistant",
+                "input": message,
+                "session_id": session_id,
+            },
         )
         yield AgentStreamEvent(
             event="agent_completed",
@@ -52,18 +58,26 @@ def test_run_item_serialization_does_not_copy_agent_lock() -> None:
     }
 
 
+def test_delta_events_are_excluded_from_agent_trace() -> None:
+    assert AgentService._is_delta_event("response.output_text.delta") is True
+    assert AgentService._is_delta_event("response.reasoning_text.delta") is True
+    assert AgentService._is_delta_event("response.output_text.done") is False
+    assert AgentService._is_delta_event("response.completed") is False
+
+
 @pytest.mark.asyncio
 async def test_agent_service_starts_without_calling_openrouter() -> None:
     service = AgentService(
         OpenRouterSettings(api_key="test-key", model="openai/gpt-4.1-mini")
     )
-    stream = service.stream("Hello")
+    stream = service.stream("Hello", "test-session")
 
     event = await anext(stream)
     await stream.aclose()
 
     assert event.event == "agent_started"
     assert event.data["model"] == "openai/gpt-4.1-mini"
+    assert event.data["session_id"] == "test-session"
 
 
 def test_agent_chat_streams_server_sent_events() -> None:
@@ -72,7 +86,7 @@ def test_agent_chat_streams_server_sent_events() -> None:
         with TestClient(app) as client:
             response = client.post(
                 "/agent/chat",
-                json={"message": "Hello"},
+                json={"message": "Hello", "session_id": "chat-session"},
             )
     finally:
         app.dependency_overrides.clear()
@@ -81,5 +95,6 @@ def test_agent_chat_streams_server_sent_events() -> None:
     assert response.headers["content-type"].startswith("text/event-stream")
     assert "event: agent_started" in response.text
     assert '"input": "Hello"' in response.text
+    assert '"session_id": "chat-session"' in response.text
     assert "event: agent_completed" in response.text
     assert '"answer": "Hello from the test agent."' in response.text

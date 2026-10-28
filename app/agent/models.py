@@ -1,4 +1,5 @@
 from typing import Any, Dict
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -13,6 +14,13 @@ class AgentChatRequest(AgentModel):
         max_length=10_000,
         description="The user's message to the agent.",
         examples=["What can you help me with?"],
+    )
+    session_id: str = Field(
+        default_factory=lambda: uuid4().hex,
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="Conversation ID. Reuse it for follow-up messages.",
     )
 
 
