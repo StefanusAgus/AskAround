@@ -7,6 +7,7 @@ from app.agent.models import AgentAnswer
 from app.models import PlaceSearchRequest
 from evals.dataset import load_eval_cases
 from evals.graders import grade_run
+from evals.judge import build_judge_payload
 from evals.models import EvalCaseResult, EvalReport, EvalRun, ToolCallRecord
 from evals.runner import format_report_table, run_case
 
@@ -29,6 +30,28 @@ def test_eval_dataset_is_small_valid_and_covers_edge_cases() -> None:
         "hotpot_default_top_three",
         "location_not_found",
     }
+
+
+def test_llm_judge_receives_complete_fixture_ground_truth() -> None:
+    case = next(
+        case
+        for case in load_eval_cases()
+        if case.id == "hotpot_default_top_three"
+    )
+    payload = build_judge_payload(
+        case,
+        EvalRun(case_id=case.id, answer="Fixture-backed answer"),
+    )
+
+    first_place = payload["fixture_ground_truth"]["nearby_results"][
+        "hot_pot_restaurant"
+    ][0]
+    assert first_place["id"] == "hotpot-1"
+    assert first_place["formattedAddress"] == "1 Tampines Central, Singapore"
+    assert first_place["rating"] == 4.9
+    assert first_place["userRatingCount"] == 1200
+    assert first_place["priceRange"]["startPrice"]["currencyCode"] == "SGD"
+    assert first_place["regularOpeningHours"]["openNow"] is True
 
 
 def test_deterministic_graders_accept_grounded_ranked_restaurants() -> None:
