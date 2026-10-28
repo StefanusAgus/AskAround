@@ -338,6 +338,8 @@ def test_agent_prompt_includes_current_time_and_response_requirements() -> None:
     assert "price range" in instructions
     assert "today's matching weekday entry" in instructions
     assert "[View on Google Maps](URL)" in instructions
+    assert "Never invent a type" in instructions
+    assert "use the generic `restaurant` type" in instructions
 
 
 def test_nearby_results_are_ranked_by_rating_then_review_count() -> None:

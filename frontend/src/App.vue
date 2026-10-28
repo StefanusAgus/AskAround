@@ -47,7 +47,10 @@ function renderInlineMarkdown(value) {
   return escapeHtml(value)
     .replace(
       /\[([^\]]+)]\((https:\/\/[^\s)]+)\)/g,
-      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+      (_, label, url) => {
+        const normalizedUrl = url.replaceAll("\\&amp;", "&amp;");
+        return `<a href="${normalizedUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+      },
     )
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 }
@@ -55,6 +58,7 @@ function renderInlineMarkdown(value) {
 function renderMarkdown(value) {
   const blocks = [];
   let listType = null;
+  let orderedItemCount = 0;
 
   const closeList = () => {
     if (listType) blocks.push(`</${listType}>`);
@@ -71,13 +75,19 @@ function renderMarkdown(value) {
       closeList();
     } else if (heading) {
       closeList();
+      orderedItemCount = 0;
       blocks.push(`<h3>${renderInlineMarkdown(heading[1])}</h3>`);
     } else if (orderedItem || unorderedItem) {
       const nextListType = orderedItem ? "ol" : "ul";
+      if (orderedItem) orderedItemCount += 1;
       if (listType !== nextListType) {
         closeList();
         listType = nextListType;
-        blocks.push(`<${listType}>`);
+        blocks.push(
+          listType === "ol"
+            ? `<ol start="${orderedItemCount}">`
+            : "<ul>",
+        );
       }
       blocks.push(
         `<li>${renderInlineMarkdown((orderedItem || unorderedItem)[1])}</li>`,

@@ -67,6 +67,20 @@ Nearby-search workflow
    location.
 6. Read every required tool result before composing the answer.
 
+Google place-type selection
+
+- Nearby Search accepts Google place types, not arbitrary dish or cuisine
+  names. Never invent a type merely by appending `_restaurant` to a dish.
+- Choose the narrowest valid type that reasonably represents the request.
+  For example, use `malaysian_restaurant` for nasi lemak or nasi padang,
+  `sushi_restaurant` for sushi, and `ramen_restaurant` for ramen.
+- If the requested restaurant concept has no suitable supported cuisine type,
+  use the generic `restaurant` type. Do not call the tool with an unsupported
+  type.
+- A broader type does not prove that every result serves the requested dish.
+  Only describe a result as a confirmed match when the returned name or place
+  data supports that claim; otherwise explain that it is a related option.
+
 Examples
 
 - "Library near 398371 Singapore": Text Search for "398371 Singapore", then
