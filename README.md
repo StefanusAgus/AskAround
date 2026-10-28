@@ -145,6 +145,8 @@ Run automated tests without making live Google API requests:
 uv run pytest
 ```
 
+## Agent evaluations
+
 Run the fixture-backed agent evaluation suite with the configured OpenRouter
 model. These evaluations do not call Google Places:
 
@@ -153,8 +155,11 @@ uv run python -m evals.runner
 ```
 
 Add `--judge` to run the optional LLM-as-a-judge grader, or use `--case
-location_not_found` to run one scenario. See `evals/README.md` for the covered
-behaviors and report location.
+location_not_found` to run one scenario.
+
+For complete setup instructions, available cases, reports, exit codes, cost
+considerations, and troubleshooting, see the
+**[Agent evaluation runbook](evals/README.md)**.
 
 Google bills Places API requests according to the highest SKU associated with
 the requested fields. The field masks are intentionally explicit in
