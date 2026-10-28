@@ -11,7 +11,7 @@ from app.agent.models import (
 from app.constants import (
     DEFAULT_REGION_CODE,
     LOCATION_SEARCH_MAX_RESULTS,
-    MAX_PLACES_AGENT_TOOL_CALLS,
+    MAX_AGENT_TOOL_CALLS,
     NEARBY_SEARCH_DEFAULT_RADIUS_METERS,
     NEARBY_SEARCH_MAX_RESULTS,
 )
@@ -25,10 +25,10 @@ class ToolCallLimitExceeded(RuntimeError):
 
 
 def _reserve_google_api_call(context: AgentContext, tool_name: str) -> int:
-    if context.google_places_tool_calls >= MAX_PLACES_AGENT_TOOL_CALLS:
+    if context.google_places_tool_calls >= MAX_AGENT_TOOL_CALLS:
         message = (
             "Google Places tool-call limit reached: "
-            f"{MAX_PLACES_AGENT_TOOL_CALLS} calls per user turn."
+            f"{MAX_AGENT_TOOL_CALLS} calls per user turn."
         )
         logger.error("%s Attempted tool: %s", message, tool_name)
         raise ToolCallLimitExceeded(message)
@@ -67,12 +67,15 @@ def _to_place_candidate(place: Place) -> PlaceCandidate:
         google_maps_uri=place.google_maps_uri,
         national_phone_number=place.national_phone_number,
         website_uri=place.website_uri,
+        current_opening_hours=place.current_opening_hours if place.current_opening_hours else None,
+        regular_opening_hours=place.regular_opening_hours if place.regular_opening_hours else None,
         open_now=(
             place.regular_opening_hours.open_now
             if place.regular_opening_hours
             else None
         ),
-        price_level=place.price_level,
+        price_level=place.price_level if place.price_level else None,
+        price_range=place.price_range if place.price_range else None,
     )
 
 

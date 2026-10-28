@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -44,11 +44,15 @@ class Place(ApiModel):
         default=None, alias="nationalPhoneNumber"
     )
     website_uri: Optional[str] = Field(default=None, alias="websiteUri")
+    current_opening_hours: Optional[OpeningHours] = Field(
+        default=None, alias="currentOpeningHours"
+    )
     regular_opening_hours: Optional[OpeningHours] = Field(
         default=None, alias="regularOpeningHours"
     )
     rating: Optional[float] = None
     user_rating_count: Optional[int] = Field(default=None, alias="userRatingCount")
+    price_range: Optional[Any] = Field(default=None, alias="priceRange")
     price_level: Optional[str] = Field(default=None, alias="priceLevel")
 
 

@@ -6,15 +6,13 @@ GOOGLE_API_TIMEOUT_SECONDS = 10.0
 DEFAULT_LANGUAGE_CODE = "en"
 DEFAULT_REGION_CODE = "SG"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_OPENROUTER_MODEL = "openai/gpt-4.1-mini"
+DEFAULT_OPENROUTER_MODEL = "z-ai/glm-5.3-flash"
 AGENT_SESSION_DB_PATH = Path("data/agent_sessions.db")
-MAX_MANAGER_AGENT_TURNS = 5
-MAX_MANAGER_PROGRESS_RETRIES = 1
-MAX_PLACES_AGENT_TURNS = 4
-MAX_PLACES_AGENT_TOOL_CALLS = 2
+MAX_AGENT_TURNS = 8
+MAX_AGENT_TOOL_CALLS = 4
 LOCATION_SEARCH_MAX_RESULTS = 5
-NEARBY_SEARCH_MAX_RESULTS = 5
-NEARBY_SEARCH_DEFAULT_RADIUS_METERS = 2_000.0
+NEARBY_SEARCH_MAX_RESULTS = 20
+NEARBY_SEARCH_DEFAULT_RADIUS_METERS = 1_500.0
 
 # Google Places API (New) place types:
 # https://developers.google.com/maps/documentation/places/web-service/place-types
@@ -242,6 +240,11 @@ SEARCH_FIELD_MASK = ",".join(
         "places.primaryType",
         "places.businessStatus",
         "places.googleMapsUri",
+        "places.regularOpeningHours",
+        "places.rating",
+        "places.userRatingCount",
+        "places.priceLevel",
+        "places.priceRange"
     ]
 )
 
@@ -257,9 +260,11 @@ DETAIL_FIELD_MASK = ",".join(
         "googleMapsUri",
         "nationalPhoneNumber",
         "websiteUri",
+        "currentOpeningHours",
         "regularOpeningHours",
         "rating",
         "userRatingCount",
         "priceLevel",
+        "priceRange"
     ]
 )

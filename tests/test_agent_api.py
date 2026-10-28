@@ -16,9 +16,9 @@ from app.agent.tools import (
     execute_location_search,
     execute_nearby_search,
 )
-from app.agent.workflow import build_manager_agent
+from app.agent.workflow import build_agent
 from app.config import OpenRouterSettings
-from app.constants import MAX_PLACES_AGENT_TOOL_CALLS
+from app.constants import MAX_AGENT_TOOL_CALLS
 from app.main import app
 from app.models import (
     Coordinates,
@@ -91,6 +91,7 @@ class FakeGooglePlacesService:
             ],
         )
 
+
 @dataclass
 class FakeAgent:
     name: str
@@ -148,15 +149,25 @@ def test_sdk_events_are_reduced_to_focused_trace_events() -> None:
             )
         ),
     )
+    tool_output_event = SimpleNamespace(
+        type="run_item_stream_event",
+        name="tool_output",
+        item=SimpleNamespace(
+            raw_item={"output": '{"match_count":1,"matches":[]}'},
+        ),
+    )
 
     assert AgentService._convert_sdk_event(
         lifecycle_event, "manager", "AskAround Manager"
     ) is None
     reasoning = AgentService._convert_sdk_event(
-        reasoning_event, "places_agent", "Places Specialist"
+        reasoning_event, "agent", "AskAround"
     )
     tool_call = AgentService._convert_sdk_event(
-        tool_event, "places_agent", "Places Specialist"
+        tool_event, "agent", "AskAround"
+    )
+    tool_output = AgentService._convert_sdk_event(
+        tool_output_event, "agent", "AskAround"
     )
 
     assert reasoning.event == "agent_thinking"
@@ -169,37 +180,27 @@ def test_sdk_events_are_reduced_to_focused_trace_events() -> None:
         "query": "398371",
         "region_code": "SG",
     }
+    assert tool_output.event == "tool_output"
+    assert tool_output.data["output"] == {"match_count": 1, "matches": []}
 
 
 @pytest.mark.asyncio
-async def test_manager_has_places_specialist_with_google_tools() -> None:
+async def test_single_agent_has_both_google_tools() -> None:
     client = AsyncOpenAI(api_key="test-key")
     model = OpenAIChatCompletionsModel(model="test-model", openai_client=client)
 
-    async def handle_nested_stream(payload: dict[str, Any]) -> None:
-        return None
-
     try:
-        manager = build_manager_agent(model, handle_nested_stream)
-        forced_manager = build_manager_agent(
-            model,
-            handle_nested_stream,
-            force_places_tool=True,
-        )
+        agent = build_agent(model)
     finally:
         await client.close()
 
-    assert [tool.name for tool in manager.tools] == ["places_agent"]
-    assert manager.model_settings.tool_choice is None
-    assert forced_manager.model_settings.tool_choice == "places_agent"
-    specialist = manager.tools[0]._agent_instance
-    assert specialist is not None
-    assert specialist.model_settings.tool_choice == "required"
-    assert [tool.name for tool in specialist.tools] == [
+    assert agent.name == "AskAround"
+    assert agent.model_settings.tool_choice == "required"
+    assert agent.reset_tool_choice is True
+    assert [tool.name for tool in agent.tools] == [
         "search_google_places_text",
         "search_google_places_nearby",
     ]
-    assert set(manager.tools[0].params_json_schema["properties"]) == {"input"}
 
 
 @pytest.mark.asyncio
@@ -274,13 +275,13 @@ async def test_location_search_tool_enforces_hard_call_limit() -> None:
         context=AgentContext(google_places=google_places)
     )
 
-    for _ in range(MAX_PLACES_AGENT_TOOL_CALLS):
+    for _ in range(MAX_AGENT_TOOL_CALLS):
         await execute_location_search(context, "Geylang Serai", "SG")
 
     with pytest.raises(ToolCallLimitExceeded, match="tool-call limit reached"):
         await execute_location_search(context, "Geylang Serai", "SG")
 
-    assert len(google_places.requests) == MAX_PLACES_AGENT_TOOL_CALLS
+    assert len(google_places.requests) == MAX_AGENT_TOOL_CALLS
 
 
 @pytest.mark.asyncio
@@ -299,36 +300,6 @@ async def test_nearby_tool_returns_structured_results() -> None:
     )
     assert nearby.matches[0].name == "Test Ramen"
     assert nearby.matches[0].rating == 4.5
-
-
-def test_incomplete_answer_detection_requires_no_tool_call() -> None:
-    answer = "Calling the location search for Geylang Serai."
-
-    assert AgentService._needs_manager_retry(answer, tool_called=False) is True
-    assert AgentService._needs_manager_retry(answer, tool_called=True) is False
-    assert AgentService._needs_manager_retry("null", tool_called=False) is True
-    assert AgentService._needs_manager_retry(
-        "Here are some sushi spots:",
-        tool_called=False,
-        expressed_tool_intent=True,
-    ) is True
-    assert AgentService._needs_manager_retry(
-        "I need current results.",
-        tool_called=False,
-        needs_places_tool=True,
-    ) is True
-
-
-def test_reasoning_event_detects_explicit_places_tool_intent() -> None:
-    stream_event = SimpleNamespace(
-        type="raw_response_event",
-        data=SimpleNamespace(
-            type="response.reasoning_text.done",
-            text="I should call the places_agent tool with region SG.",
-        ),
-    )
-
-    assert AgentService._expresses_places_tool_intent(stream_event) is True
 
 
 def test_agent_chat_streams_server_sent_events() -> None:

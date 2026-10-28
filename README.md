@@ -37,37 +37,24 @@ Open `http://127.0.0.1:8000/docs` to inspect and test the API routes.
 
 ## Agent API
 
-`POST /agent/chat` runs the AskAround manager through OpenRouter using the
-OpenAI Agents SDK. It remains the conversational entry point and can either
-answer directly or invoke one Places Specialist agent as a tool. There is no
-separate routing-model request.
-
-The specialist receives the complete place-discovery request and can chain:
+`POST /agent/chat` runs one AskAround agent through OpenRouter using the OpenAI
+Agents SDK. There are no handoffs or nested agents. AskAround directly owns:
 
 - Google Places Text Search to resolve postcodes, addresses, and landmarks.
 - Nearby Search to find points of interest around resolved coordinates.
 
-The specialist's first action is forced to be a real Google tool call. If the
-manager returns a progress-only message such as "Calling the tool" without
-emitting a tool call, or returns an empty/null-like answer, the application
-removes that incomplete response and retries once with `places_agent` forced.
-The same recovery applies when the manager explicitly expresses tool intent in
-its streamed reasoning or sets its structured `needs_places_tool` fallback.
-After the tool executes, the manager can synthesize normally. Generic answers
-do not require a tool call.
+Its prompt defines the workflow: resolve the location anchor with Text Search,
+reuse the returned coordinates for Nearby Search, run one Nearby Search per
+requested category, and synthesize only from tool results.
 
-The specialist infers an ISO two-letter region code when the user provides a
-clear country or region hint. For example, `Paris, France` uses `FR`. If the
-region is missing, ambiguous, or malformed by the model, the per-request agent
-context defaults to Singapore (`SG`). Response language remains English.
+The agent infers an ISO two-letter region code from a clear country hint and
+defaults to Singapore (`SG`) otherwise. Response language remains English.
 
-The response is a Server-Sent Events stream so callers can observe both the
-manager and nested specialist run as they happen. The stream emits:
+The response is a Server-Sent Events stream with focused events:
 
-- `agent_thinking` with concise manager or specialist reasoning.
-- `tool_call` with the tool name, input, and parsed parameters.
+- `agent_thinking` with concise agent reasoning.
+- `tool_call` with the tool name and parsed parameters.
 - `tool_output` with the parsed tool result.
-- `agent_output` with the specialist's structured output.
 - `agent_completed` with the validated `AgentAnswer` output.
 - `agent_error` with a clear exception type and message if the run fails.
 
@@ -82,20 +69,18 @@ curl.exe -N `
 
 The focused trace events are also printed to stdout. Raw SDK lifecycle events,
 token deltas, duplicate message envelopes, and HTTP client request logs are
-omitted. Trace events include a `scope` field so the manager and Places
-Specialist runs remain distinguishable.
+omitted. Trace events include the agent name and execution scope.
 
-The cost-control constants are explicit in `app/constants.py`. A specialist
-run may make at most `MAX_PLACES_AGENT_TOOL_CALLS` Google calls. Text and Nearby
-Search result counts are also capped. The shared limit is enforced in
-application code, even if the model requests more.
+The cost-control constants are explicit in `app/constants.py`. A run may make
+at most `MAX_AGENT_TOOL_CALLS` Google calls. Text and Nearby Search result
+counts are also capped. The limit is enforced in application code.
 
 ## Chat interface
 
 The `frontend` directory contains a small Vue/Vite single-page chat interface.
 It displays each assistant answer with a collapsible execution trace containing
-all non-delta manager and specialist events. A conversation keeps the same
-`session_id` across messages, while the
+only reasoning, tool calls, tool outputs, final output, and errors. A
+conversation keeps the same `session_id` across messages, while the
 **New chat** button clears the screen and creates a new backend session.
 
 Run the backend in one PowerShell terminal:

@@ -25,13 +25,6 @@ class AgentChatRequest(AgentModel):
 
 class AgentAnswer(AgentModel):
     answer: str = Field(description="The agent's response to the user.")
-    needs_places_tool: bool = Field(
-        default=False,
-        description=(
-            "True only when live place data is required but places_agent was "
-            "not successfully called."
-        ),
-    )
 
 
 class PlaceCandidate(AgentModel):
@@ -65,20 +58,6 @@ class NearbySearchToolResult(AgentModel):
     radius_meters: float
     match_count: int
     matches: List[PlaceCandidate]
-
-
-class PlaceSuggestion(AgentModel):
-    purpose: str = Field(
-        description="The role of this place, such as ramen or library."
-    )
-    place: PlaceCandidate
-
-
-class PlacesAgentOutput(AgentModel):
-    request: str
-    region_code: str
-    summary: str
-    suggestions: List[PlaceSuggestion] = Field(default_factory=list)
 
 
 class AgentStreamEvent(AgentModel):
