@@ -5,6 +5,9 @@ GOOGLE_PLACES_BASE_URL = "https://places.googleapis.com/v1"
 GOOGLE_API_TIMEOUT_SECONDS = 10.0
 DEFAULT_LANGUAGE_CODE = "en"
 DEFAULT_REGION_CODE = "SG"
+DEFAULT_TIMEZONE = "Asia/Singapore"
+DEFAULT_UTC_OFFSET_HOURS = 8
+DEFAULT_RECOMMENDATION_COUNT = 3
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_OPENROUTER_MODEL = "z-ai/glm-5.3-flash"
 AGENT_SESSION_DB_PATH = Path("data/agent_sessions.db")
@@ -240,11 +243,12 @@ SEARCH_FIELD_MASK = ",".join(
         "places.primaryType",
         "places.businessStatus",
         "places.googleMapsUri",
+        "places.currentOpeningHours",
         "places.regularOpeningHours",
         "places.rating",
         "places.userRatingCount",
         "places.priceLevel",
-        "places.priceRange"
+        "places.priceRange",
     ]
 )
 

@@ -3,6 +3,9 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models import OpeningHours
+
+
 class AgentModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -24,7 +27,12 @@ class AgentChatRequest(AgentModel):
 
 
 class AgentAnswer(AgentModel):
-    answer: str = Field(description="The agent's response to the user.")
+    answer: str = Field(
+        description=(
+            "The agent's user-facing response in safe Markdown, including "
+            "ranked place names and Google Maps links when available."
+        )
+    )
 
 
 class PlaceCandidate(AgentModel):
@@ -40,8 +48,11 @@ class PlaceCandidate(AgentModel):
     google_maps_uri: Optional[str] = None
     national_phone_number: Optional[str] = None
     website_uri: Optional[str] = None
+    current_opening_hours: Optional[OpeningHours] = None
+    regular_opening_hours: Optional[OpeningHours] = None
     open_now: Optional[bool] = None
     price_level: Optional[str] = None
+    price_range: Optional[Any] = None
 
 
 class LocationSearchToolResult(AgentModel):

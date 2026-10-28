@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from threading import RLock
 from types import SimpleNamespace
 from typing import Any, AsyncIterator
@@ -10,9 +11,11 @@ from openai import AsyncOpenAI
 
 from app.agent.context import AgentContext
 from app.agent.models import AgentStreamEvent
+from app.agent.prompts import build_askaround_agent_instructions
 from app.agent.service import AgentService
 from app.agent.tools import (
     ToolCallLimitExceeded,
+    _rank_places,
     execute_location_search,
     execute_nearby_search,
 )
@@ -24,6 +27,7 @@ from app.models import (
     Coordinates,
     DisplayName,
     NearbySearchResponse,
+    OpeningHours,
     Place,
     PlaceSearchResponse,
 )
@@ -87,6 +91,19 @@ class FakeGooglePlacesService:
                     primary_type="ramen_restaurant",
                     types=["ramen_restaurant", "restaurant"],
                     rating=4.5,
+                    user_rating_count=120,
+                    google_maps_uri="https://maps.google.com/?cid=test",
+                    regular_opening_hours=OpeningHours(
+                        open_now=True,
+                        weekday_descriptions=[
+                            "Wednesday: 11:00 AM - 10:00 PM"
+                        ],
+                    ),
+                    price_level="PRICE_LEVEL_MODERATE",
+                    price_range={
+                        "startPrice": {"currencyCode": "SGD", "units": "15"},
+                        "endPrice": {"currencyCode": "SGD", "units": "30"},
+                    },
                 )
             ],
         )
@@ -195,7 +212,7 @@ async def test_single_agent_has_both_google_tools() -> None:
         await client.close()
 
     assert agent.name == "AskAround"
-    assert agent.model_settings.tool_choice == "required"
+    assert agent.model_settings.tool_choice == "auto"
     assert agent.reset_tool_choice is True
     assert [tool.name for tool in agent.tools] == [
         "search_google_places_text",
@@ -300,6 +317,43 @@ async def test_nearby_tool_returns_structured_results() -> None:
     )
     assert nearby.matches[0].name == "Test Ramen"
     assert nearby.matches[0].rating == 4.5
+    assert nearby.matches[0].user_rating_count == 120
+    assert nearby.matches[0].google_maps_uri == "https://maps.google.com/?cid=test"
+    assert nearby.matches[0].open_now is True
+    assert nearby.matches[0].regular_opening_hours.weekday_descriptions == [
+        "Wednesday: 11:00 AM - 10:00 PM"
+    ]
+    assert nearby.matches[0].price_level == "PRICE_LEVEL_MODERATE"
+    assert nearby.matches[0].price_range["startPrice"]["units"] == "15"
+
+
+def test_agent_prompt_includes_current_time_and_response_requirements() -> None:
+    instructions = build_askaround_agent_instructions(
+        datetime(2026, 10, 28, 3, 30, tzinfo=timezone.utc)
+    )
+
+    assert "Wednesday, 28 October 2026 at 11:30" in instructions
+    assert "treat the request as being for today" in instructions
+    assert "top\n  3 recommendations" in instructions
+    assert "price range" in instructions
+    assert "today's matching weekday entry" in instructions
+    assert "[View on Google Maps](URL)" in instructions
+
+
+def test_nearby_results_are_ranked_by_rating_then_review_count() -> None:
+    places = [
+        Place(id="lower", rating=4.2, user_rating_count=900),
+        Place(id="fewer-reviews", rating=4.8, user_rating_count=20),
+        Place(id="more-reviews", rating=4.8, user_rating_count=200),
+        Place(id="no-rating"),
+    ]
+
+    assert [place.id for place in _rank_places(places)] == [
+        "more-reviews",
+        "fewer-reviews",
+        "lower",
+        "no-rating",
+    ]
 
 
 def test_agent_chat_streams_server_sent_events() -> None:

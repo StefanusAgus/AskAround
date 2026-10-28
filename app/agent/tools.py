@@ -67,15 +67,30 @@ def _to_place_candidate(place: Place) -> PlaceCandidate:
         google_maps_uri=place.google_maps_uri,
         national_phone_number=place.national_phone_number,
         website_uri=place.website_uri,
-        current_opening_hours=place.current_opening_hours if place.current_opening_hours else None,
-        regular_opening_hours=place.regular_opening_hours if place.regular_opening_hours else None,
+        current_opening_hours=place.current_opening_hours,
+        regular_opening_hours=place.regular_opening_hours,
         open_now=(
-            place.regular_opening_hours.open_now
+            place.current_opening_hours.open_now
+            if place.current_opening_hours
+            else place.regular_opening_hours.open_now
             if place.regular_opening_hours
             else None
         ),
-        price_level=place.price_level if place.price_level else None,
-        price_range=place.price_range if place.price_range else None,
+        price_level=place.price_level,
+        price_range=place.price_range,
+    )
+
+
+def _rank_places(places: list[Place]) -> list[Place]:
+    """Put highly rated, well-reviewed places first without dropping results."""
+    return sorted(
+        places,
+        key=lambda place: (
+            place.rating is not None,
+            place.rating or 0,
+            place.user_rating_count or 0,
+        ),
+        reverse=True,
     )
 
 
@@ -149,7 +164,10 @@ async def execute_nearby_search(
             longitude=response.center.longitude,
             radius_meters=response.radius_meters,
             match_count=response.count,
-            matches=[_to_place_candidate(place) for place in response.places],
+            matches=[
+                _to_place_candidate(place)
+                for place in _rank_places(response.places)
+            ],
         )
         return result
     except Exception:

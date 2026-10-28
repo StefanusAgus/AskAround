@@ -34,6 +34,64 @@ function eventLabel(trace) {
   return trace.event.replaceAll("_", " ");
 }
 
+function escapeHtml(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderInlineMarkdown(value) {
+  return escapeHtml(value)
+    .replace(
+      /\[([^\]]+)]\((https:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+    )
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
+function renderMarkdown(value) {
+  const blocks = [];
+  let listType = null;
+
+  const closeList = () => {
+    if (listType) blocks.push(`</${listType}>`);
+    listType = null;
+  };
+
+  for (const rawLine of value.split("\n")) {
+    const line = rawLine.trim();
+    const heading = line.match(/^#{1,3}\s+(.+)$/);
+    const orderedItem = line.match(/^\d+\.\s+(.+)$/);
+    const unorderedItem = line.match(/^[-*]\s+(.+)$/);
+
+    if (!line) {
+      closeList();
+    } else if (heading) {
+      closeList();
+      blocks.push(`<h3>${renderInlineMarkdown(heading[1])}</h3>`);
+    } else if (orderedItem || unorderedItem) {
+      const nextListType = orderedItem ? "ol" : "ul";
+      if (listType !== nextListType) {
+        closeList();
+        listType = nextListType;
+        blocks.push(`<${listType}>`);
+      }
+      blocks.push(
+        `<li>${renderInlineMarkdown((orderedItem || unorderedItem)[1])}</li>`,
+      );
+    } else {
+      closeList();
+      blocks.push(`<p>${renderInlineMarkdown(line)}</p>`);
+    }
+  }
+
+  closeList();
+  return blocks.join("");
+}
+
 function isVisibleTrace(event) {
   return new Set([
     "agent_thinking",
@@ -214,9 +272,12 @@ onBeforeUnmount(() => activeController?.abort());
                 </span>
               </div>
 
-              <p v-if="message.text" class="assistant-answer" :class="{ error: message.status === 'error' }">
-                {{ message.text }}
-              </p>
+              <div
+                v-if="message.text"
+                class="assistant-answer"
+                :class="{ error: message.status === 'error' }"
+                v-html="renderMarkdown(message.text)"
+              ></div>
               <div v-else class="typing-indicator" aria-label="Agent is working">
                 <span></span><span></span><span></span>
               </div>

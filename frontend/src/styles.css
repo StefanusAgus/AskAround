@@ -284,7 +284,53 @@ h1 {
   margin: 10px 0 0;
   font-size: 15px;
   line-height: 1.75;
-  white-space: pre-wrap;
+}
+
+.assistant-answer h3 {
+  margin: 22px 0 8px;
+  color: var(--ink);
+  font-family: Georgia, serif;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.assistant-answer h3:first-child,
+.assistant-answer p:first-child,
+.assistant-answer ol:first-child,
+.assistant-answer ul:first-child {
+  margin-top: 0;
+}
+
+.assistant-answer p {
+  margin: 8px 0;
+}
+
+.assistant-answer ol,
+.assistant-answer ul {
+  margin: 10px 0;
+  padding-left: 24px;
+}
+
+.assistant-answer li {
+  margin: 7px 0;
+  padding-left: 3px;
+}
+
+.assistant-answer strong {
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.assistant-answer a {
+  color: var(--accent-dark);
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-color: rgba(166, 69, 45, 0.38);
+  text-underline-offset: 3px;
+}
+
+.assistant-answer a:hover {
+  text-decoration-color: currentColor;
 }
 
 .assistant-answer.error {
