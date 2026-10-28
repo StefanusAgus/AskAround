@@ -214,7 +214,8 @@ search_google_places_nearby = function_tool(
     name_override="search_google_places_nearby",
     description_override=(
         "Find points of interest around coordinates. included_types must use "
-        "Google place types such as sushi_restaurant, ramen_restaurant, or library."
+        "Google place types such as sushi_restaurant, ramen_restaurant, "
+        "hot_pot_restaurant, or library."
     ),
 )
 

@@ -264,8 +264,9 @@ def _grade_location_failure(case: EvalCase, run: EvalRun) -> GradeResult:
     nearby_calls = [
         call for call in run.tool_calls if call.tool == "search_google_places_nearby"
     ]
+    normalized_answer = run.answer.lower().replace("’", "'").replace("‘", "'")
     failure_language = any(
-        phrase in run.answer.lower()
+        phrase in normalized_answer
         for phrase in ("not found", "no match", "could not", "couldn't", "unable")
     )
     passed = not nearby_calls and failure_language

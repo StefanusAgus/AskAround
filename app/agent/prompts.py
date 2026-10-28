@@ -73,7 +73,9 @@ Google place-type selection
   names. Never invent a type merely by appending `_restaurant` to a dish.
 - Choose the narrowest valid type that reasonably represents the request.
   For example, use `malaysian_restaurant` for nasi lemak or nasi padang,
-  `sushi_restaurant` for sushi, and `ramen_restaurant` for ramen.
+  `sushi_restaurant` for sushi, `ramen_restaurant` for ramen, and
+  `hot_pot_restaurant` for hotpot. Note the exact spelling: Google uses
+  `hot_pot_restaurant`, not `hotpot_restaurant`.
 - If the requested restaurant concept has no suitable supported cuisine type,
   use the generic `restaurant` type. Do not call the tool with an unsupported
   type.

@@ -151,7 +151,7 @@ def test_location_not_found_grader_requires_no_nearby_call() -> None:
     )
     run = EvalRun(
         case_id=case.id,
-        answer="I could not find a matching location, so no nearby search was run.",
+        answer="I couldn’t find a matching location, so no nearby search was run.",
         tool_calls=[
             ToolCallRecord(
                 tool="search_google_places_text",
