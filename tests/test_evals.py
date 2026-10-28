@@ -73,7 +73,7 @@ def test_deterministic_graders_accept_grounded_ranked_restaurants() -> None:
                 f"- Rating: {rating}/5",
                 "- Address: Tampines, Singapore",
                 "- Price: SGD 20-40",
-                "- Wednesday hours: 11:00 AM-10:00 PM",
+                "- Hours today: 11:00 AM-10:00 PM",
                 f"- [View on Google Maps]({_maps_link(place_id, name)})",
             ]
         )

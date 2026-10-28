@@ -241,7 +241,12 @@ def _grade_recommendation_details(case: EvalCase, run: EvalRun) -> GradeResult:
         )
     rating_count = len(re.findall(r"(?im)^\s*-?\s*rating\s*:", run.answer))
     address_count = len(re.findall(r"(?im)^\s*-?\s*address\s*:", run.answer))
-    hours_count = len(re.findall(r"(?im)^\s*-?\s*.+hours\s*:", run.answer))
+    hours_count = len(
+        re.findall(
+            r"(?im)^\s*-?\s*[^:\n]*\bhours\b[^:\n]*:",
+            run.answer,
+        )
+    )
     hours_valid = (
         not case.expected.require_opening_hours or hours_count >= count
     )
