@@ -3,12 +3,20 @@ import { nextTick, onBeforeUnmount, ref } from "vue";
 
 import { streamAgentMessage } from "./services/agent";
 
-const suggestions = [
-  "What can you help me with?",
-  "Help me plan a relaxed weekend outing",
-  "What should I consider when choosing a restaurant?",
+const starterPrompts = [
+  "Find the top sushi places near 398371 Singapore",
+  "Recommend hotpot restaurants near Tampines MRT",
+  "Where can I find nasi lemak near Yishun MRT?",
+  "Suggest ramen restaurants and libraries near Suntec City",
+  "Find highly rated cafes near Singapore Changi Airport",
+  "Recommend parks near Bishan MRT",
+  "Find Thai restaurants near Bugis Junction",
+  "Suggest museums near City Hall MRT",
+  "Find halal restaurants near Geylang Serai",
+  "Recommend coffee shops and bookstores near Orchard Road",
 ];
 
+const suggestions = ref(selectStarterPrompts());
 const messages = ref([]);
 const draft = ref("");
 const isSending = ref(false);
@@ -16,6 +24,18 @@ const chatScroll = ref(null);
 const composer = ref(null);
 const sessionId = ref(createSessionId());
 let activeController = null;
+
+function selectStarterPrompts() {
+  const shuffled = [...starterPrompts];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [
+      shuffled[randomIndex],
+      shuffled[index],
+    ];
+  }
+  return shuffled.slice(0, 3);
+}
 
 function createSessionId() {
   return crypto.randomUUID().replaceAll("-", "");
@@ -129,6 +149,7 @@ function newChat() {
   activeController = null;
   sessionId.value = createSessionId();
   messages.value = [];
+  suggestions.value = selectStarterPrompts();
   draft.value = "";
   isSending.value = false;
   nextTick(() => composer.value?.focus());
