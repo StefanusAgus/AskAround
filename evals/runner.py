@@ -27,6 +27,106 @@ from evals.models import EvalCase, EvalCaseResult, EvalReport, EvalRun, JudgeRes
 set_tracing_disabled(True)
 
 
+METRIC_COLUMNS = (
+    ("task_completion", "Task"),
+    ("tool_accuracy", "Tools"),
+    ("groundedness", "Grounding"),
+    ("response_quality", "Response"),
+)
+
+
+def format_report_table(report: EvalReport) -> str:
+    include_judge = any(result.judge is not None for result in report.cases)
+    headers = ["Case", *(label for _, label in METRIC_COLUMNS), "Score"]
+    if include_judge:
+        headers.append("Judge")
+    headers.append("Result")
+    rows = []
+    for result in report.cases:
+        grades = {grade.name: grade for grade in result.grades}
+        row = [
+            result.case_id,
+            *(
+                "PASS" if grades[name].passed else "FAIL"
+                for name, _ in METRIC_COLUMNS
+            ),
+            f"{result.deterministic_score:.0%}",
+        ]
+        if include_judge:
+            row.append(
+                "-"
+                if result.judge is None
+                else "PASS"
+                if result.judge.passed
+                else "FAIL"
+            )
+        row.append("PASS" if result.passed else "FAIL")
+        rows.append(row)
+
+    case_count = len(report.cases)
+
+    def aggregate_cell(passed: int, total: int) -> str:
+        percentage = passed / total if total else 0
+        return f"{passed}/{total} ({percentage:.0%})"
+
+    aggregate_row = ["TOTAL"]
+    for metric_name, _ in METRIC_COLUMNS:
+        metric_passes = sum(
+            next(
+                grade.passed
+                for grade in result.grades
+                if grade.name == metric_name
+            )
+            for result in report.cases
+        )
+        aggregate_row.append(aggregate_cell(metric_passes, case_count))
+    average_score = (
+        sum(result.deterministic_score for result in report.cases) / case_count
+        if case_count
+        else 0
+    )
+    aggregate_row.append(f"{average_score:.0%} avg")
+    if include_judge:
+        judged_results = [
+            result.judge for result in report.cases if result.judge is not None
+        ]
+        aggregate_row.append(
+            aggregate_cell(
+                sum(judge.passed for judge in judged_results),
+                len(judged_results),
+            )
+        )
+    aggregate_row.append(
+        aggregate_cell(sum(result.passed for result in report.cases), case_count)
+    )
+    rows.append(aggregate_row)
+
+    widths = [
+        max(len(headers[index]), *(len(row[index]) for row in rows))
+        for index in range(len(headers))
+    ]
+    separator = "+-" + "-+-".join("-" * width for width in widths) + "-+"
+
+    def format_row(values: list[str]) -> str:
+        return "| " + " | ".join(
+            value.ljust(width) for value, width in zip(values, widths)
+        ) + " |"
+
+    lines = [
+        "AskAround evaluation summary",
+        separator,
+        format_row(headers),
+        separator,
+        *(format_row(row) for row in rows[:-1]),
+        separator,
+        format_row(rows[-1]),
+        separator,
+        f"Overall: {sum(case.passed for case in report.cases)}/"
+        f"{len(report.cases)} cases passed ({report.pass_rate:.0%})",
+    ]
+    return "\n".join(lines)
+
+
 async def run_case(
     case: EvalCase,
     target_model: Model,
@@ -156,6 +256,9 @@ async def _main() -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(payload + "\n", encoding="utf-8")
     print(payload)
+    print()
+    print(format_report_table(report))
+    print(f"JSON report: {args.output}")
     return 0 if report.passed else 1
 
 

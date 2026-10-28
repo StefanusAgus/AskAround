@@ -7,8 +7,8 @@ from app.agent.models import AgentAnswer
 from app.models import PlaceSearchRequest
 from evals.dataset import load_eval_cases
 from evals.graders import grade_run
-from evals.models import EvalRun, ToolCallRecord
-from evals.runner import run_case
+from evals.models import EvalCaseResult, EvalReport, EvalRun, ToolCallRecord
+from evals.runner import format_report_table, run_case
 
 
 def _maps_link(place_id: str, name: str) -> str:
@@ -79,6 +79,38 @@ def test_deterministic_graders_accept_grounded_ranked_restaurants() -> None:
     assert all(grade.passed for grade in grades), [
         grade.model_dump() for grade in grades if not grade.passed
     ]
+    assert [grade.name for grade in grades] == [
+        "task_completion",
+        "tool_accuracy",
+        "groundedness",
+        "response_quality",
+    ]
+
+    report = EvalReport(
+        model="test-model",
+        passed=True,
+        pass_rate=1,
+        cases=[
+            EvalCaseResult(
+                case_id=case.id,
+                passed=True,
+                deterministic_score=1,
+                grades=grades,
+                run=run,
+            )
+        ],
+    )
+    table = format_report_table(report)
+    assert "| Case" in table
+    assert "| Task" in table
+    assert "| Tools" in table
+    assert "| Grounding" in table
+    assert "| Response" in table
+    assert "hotpot_default_top_three" in table
+    assert "| TOTAL" in table
+    assert "1/1 (100%)" in table
+    assert "100% avg" in table
+    assert "Overall: 1/1 cases passed (100%)" in table
 
 
 def test_deterministic_graders_reject_hallucinated_place() -> None:
@@ -109,8 +141,8 @@ def test_deterministic_graders_reject_hallucinated_place() -> None:
 
     grades = {grade.name: grade for grade in grade_run(case, run)}
 
-    assert grades["grounded_recommendations"].passed is False
-    assert grades["maps_links"].passed is False
+    assert grades["groundedness"].passed is False
+    assert grades["response_quality"].passed is False
 
 
 def test_location_not_found_grader_requires_no_nearby_call() -> None:

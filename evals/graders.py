@@ -147,14 +147,20 @@ def _grade_grounding(case: EvalCase, run: EvalRun) -> GradeResult:
     recommendations = RECOMMENDATION_PATTERN.findall(run.answer)
     known = _known_places(case)
     unknown = [name for name in recommendations if name not in known]
-    expected_count = case.expected.expected_recommendations
-    count_matches = len(recommendations) == expected_count
-    passed = count_matches and not unknown
     return _grade(
         "grounded_recommendations",
-        passed,
-        f"recommendations={recommendations}, unknown={unknown}, "
-        f"expected_count={expected_count}",
+        not unknown,
+        f"recommendations={recommendations}, unknown={unknown}",
+    )
+
+
+def _grade_recommendation_count(case: EvalCase, run: EvalRun) -> GradeResult:
+    actual = len(RECOMMENDATION_PATTERN.findall(run.answer))
+    expected = case.expected.expected_recommendations
+    return _grade(
+        "recommendation_count",
+        actual == expected,
+        f"Expected {expected} recommendations; received {actual}",
     )
 
 
@@ -272,41 +278,81 @@ def _grade_location_failure(case: EvalCase, run: EvalRun) -> GradeResult:
     )
 
 
+def _aggregate_metric(
+    name: str,
+    checks: list[GradeResult],
+) -> GradeResult:
+    failures = [check for check in checks if not check.passed]
+    return _grade(
+        name,
+        not failures,
+        "All checks passed"
+        if not failures
+        else "; ".join(f"{check.name}: {check.detail}" for check in failures),
+    )
+
+
 def grade_run(case: EvalCase, run: EvalRun) -> list[GradeResult]:
     if run.error:
         return [
             _grade(
-                "run_completed",
+                metric,
                 False,
                 f"Agent run failed: {run.error}",
             )
+            for metric in (
+                "task_completion",
+                "tool_accuracy",
+                "groundedness",
+                "response_quality",
+            )
         ]
 
-    grades = [
-        _grade_tool_workflow(case, run),
-        _grade_location_query(case, run),
-        _grade_nearby_types(case, run),
-        _grade_region(case, run),
-        _grade_coordinates(case, run),
-        _grade_grounding(case, run),
-        _grade_ranking(case, run),
-        _grade_maps_links(case, run),
-        _grade_restaurant_details(case, run),
-        _grade_recommendation_details(case, run),
-        _grade_location_failure(case, run),
-    ]
     duplicate_names = [
         name
         for name, count in Counter(RECOMMENDATION_PATTERN.findall(run.answer)).items()
         if count > 1
     ]
-    grades.append(
-        _grade(
-            "no_duplicate_recommendations",
-            not duplicate_names,
-            "No duplicate recommendations"
-            if not duplicate_names
-            else f"Duplicate recommendations: {duplicate_names}",
-        )
+    duplicate_check = _grade(
+        "no_duplicate_recommendations",
+        not duplicate_names,
+        "No duplicate recommendations"
+        if not duplicate_names
+        else f"Duplicate recommendations: {duplicate_names}",
     )
-    return grades
+
+    return [
+        _aggregate_metric(
+            "task_completion",
+            [
+                _grade_tool_workflow(case, run),
+                _grade_location_query(case, run),
+                _grade_coordinates(case, run),
+                _grade_location_failure(case, run),
+            ],
+        ),
+        _aggregate_metric(
+            "tool_accuracy",
+            [
+                _grade_nearby_types(case, run),
+                _grade_region(case, run),
+            ],
+        ),
+        _aggregate_metric(
+            "groundedness",
+            [
+                _grade_grounding(case, run),
+                duplicate_check,
+            ],
+        ),
+        _aggregate_metric(
+            "response_quality",
+            [
+                _grade_recommendation_count(case, run),
+                _grade_ranking(case, run),
+                _grade_maps_links(case, run),
+                _grade_restaurant_details(case, run),
+                _grade_recommendation_details(case, run),
+            ],
+        ),
+    ]

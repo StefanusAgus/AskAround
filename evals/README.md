@@ -17,10 +17,19 @@ The representative cases cover:
 - providing ratings, addresses, prices, hours, and valid Maps links; and
 - stopping safely when a location cannot be found.
 
-Deterministic graders inspect tool order, parameters, resolved coordinates,
-region codes, place types, grounding, recommendation count, rating order,
-links, required details, duplicates, and location-not-found behavior. An
-optional LLM judge evaluates usefulness and transparent uncertainty.
+The deterministic evaluation exposes four commonly used metrics:
+
+| Metric | What it measures |
+| --- | --- |
+| Task completion | Whether the requested workflow completed, including location resolution and edge-case handling. |
+| Tool accuracy | Whether the agent selected valid tools, place types, and region parameters. |
+| Groundedness | Whether recommendations came from fixture data without hallucinations or duplicates. |
+| Response quality | Whether the answer has the expected count, ranking, links, and required place details. |
+
+Each metric is binary and equally weighted. A case passes only when all four
+metrics pass. The metric explanations retain the underlying failed checks for
+debugging without exposing each check as a separate score. An optional LLM
+judge evaluates usefulness and transparent uncertainty.
 
 ## Prerequisites
 
@@ -104,8 +113,12 @@ Choose another destination with:
 uv run python -m evals.runner --output evals/results/my-run.json
 ```
 
-Reports include the final answer, recorded tool calls, every deterministic
-grade and explanation, the deterministic score, and the optional judge result.
+Reports include the final answer, recorded tool calls, the four metrics and
+their explanations, the deterministic score, and the optional judge result.
+The console also ends with a consolidated table showing every case and metric,
+plus a Judge column when `--judge` is enabled. Its final `TOTAL` row shows the
+pass count and percentage for each metric, the average deterministic score,
+judge totals when applicable, and the overall case pass rate.
 The command exits with code `0` only when every selected case passes; otherwise
 it exits with code `1`, making it suitable for CI.
 
@@ -144,8 +157,9 @@ properties such as usefulness and communication of uncertainty.
 
 - `OPENROUTER_API_KEY is not set`: add the key to `.env` in the repository root.
 - `Unknown evaluation case`: check the case ID against the list above.
-- A tool-workflow grade fails: inspect `run.tool_calls` in the JSON report.
-- A grounding grade fails: compare the numbered recommendations with the place
+- Tool accuracy or task completion fails: inspect `run.tool_calls` in the JSON
+  report.
+- Groundedness fails: compare the numbered recommendations with the place
   names provided in the case fixtures.
-- A Maps-link or detail grade fails: inspect the final Markdown response in
+- Response quality fails: inspect the final Markdown response in
   `run.answer`.
