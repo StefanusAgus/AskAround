@@ -1,14 +1,32 @@
 from dataclasses import dataclass
 from threading import RLock
+from types import SimpleNamespace
 from typing import Any, AsyncIterator
 
 import pytest
+from agents import OpenAIChatCompletionsModel, RunContextWrapper
 from fastapi.testclient import TestClient
+from openai import AsyncOpenAI
 
+from app.agent.context import AgentContext
 from app.agent.models import AgentStreamEvent
 from app.agent.service import AgentService
+from app.agent.tools import (
+    ToolCallLimitExceeded,
+    execute_location_search,
+    execute_nearby_search,
+)
+from app.agent.workflow import build_manager_agent
 from app.config import OpenRouterSettings
+from app.constants import MAX_PLACES_AGENT_TOOL_CALLS
 from app.main import app
+from app.models import (
+    Coordinates,
+    DisplayName,
+    NearbySearchResponse,
+    Place,
+    PlaceSearchResponse,
+)
 from app.routers.agent import get_agent_service
 
 
@@ -29,6 +47,49 @@ class FakeAgentService:
             data={"output": {"answer": "Hello from the test agent."}},
         )
 
+
+class FakeGooglePlacesService:
+    def __init__(self) -> None:
+        self.requests = []
+
+    async def search(self, request: Any) -> PlaceSearchResponse:
+        self.requests.append(request)
+        return PlaceSearchResponse(
+            query=request.query,
+            count=1,
+            places=[
+                Place(
+                    id="test-place-id",
+                    display_name=DisplayName(text="Geylang Serai"),
+                    formatted_address="Geylang Serai, Singapore",
+                    location=Coordinates(latitude=1.3167, longitude=103.8982),
+                    primary_type="neighborhood",
+                    types=["neighborhood", "political"],
+                )
+            ],
+        )
+
+    async def search_nearby(self, request: Any) -> NearbySearchResponse:
+        self.requests.append(request)
+        return NearbySearchResponse(
+            center=Coordinates(
+                latitude=request.latitude,
+                longitude=request.longitude,
+            ),
+            radius_meters=request.radius_meters,
+            count=1,
+            places=[
+                Place(
+                    id="ramen-place-id",
+                    display_name=DisplayName(text="Test Ramen"),
+                    formatted_address="1 Ramen Road, Singapore",
+                    location=Coordinates(latitude=1.32, longitude=103.89),
+                    primary_type="ramen_restaurant",
+                    types=["ramen_restaurant", "restaurant"],
+                    rating=4.5,
+                )
+            ],
+        )
 
 @dataclass
 class FakeAgent:
@@ -65,10 +126,87 @@ def test_delta_events_are_excluded_from_agent_trace() -> None:
     assert AgentService._is_delta_event("response.completed") is False
 
 
+def test_sdk_events_are_reduced_to_focused_trace_events() -> None:
+    lifecycle_event = SimpleNamespace(
+        type="raw_response_event",
+        data=SimpleNamespace(type="response.created"),
+    )
+    reasoning_event = SimpleNamespace(
+        type="raw_response_event",
+        data=SimpleNamespace(
+            type="response.reasoning_text.done",
+            text="Resolve the postcode before searching nearby.",
+        ),
+    )
+    tool_event = SimpleNamespace(
+        type="run_item_stream_event",
+        name="tool_called",
+        item=SimpleNamespace(
+            raw_item=SimpleNamespace(
+                name="search_google_places_text",
+                arguments='{"query":"398371","region_code":"SG"}',
+            )
+        ),
+    )
+
+    assert AgentService._convert_sdk_event(
+        lifecycle_event, "manager", "AskAround Manager"
+    ) is None
+    reasoning = AgentService._convert_sdk_event(
+        reasoning_event, "places_agent", "Places Specialist"
+    )
+    tool_call = AgentService._convert_sdk_event(
+        tool_event, "places_agent", "Places Specialist"
+    )
+
+    assert reasoning.event == "agent_thinking"
+    assert reasoning.data["thinking"] == (
+        "Resolve the postcode before searching nearby."
+    )
+    assert tool_call.event == "tool_call"
+    assert tool_call.data["tool"] == "search_google_places_text"
+    assert tool_call.data["parameters"] == {
+        "query": "398371",
+        "region_code": "SG",
+    }
+
+
+@pytest.mark.asyncio
+async def test_manager_has_places_specialist_with_google_tools() -> None:
+    client = AsyncOpenAI(api_key="test-key")
+    model = OpenAIChatCompletionsModel(model="test-model", openai_client=client)
+
+    async def handle_nested_stream(payload: dict[str, Any]) -> None:
+        return None
+
+    try:
+        manager = build_manager_agent(model, handle_nested_stream)
+        forced_manager = build_manager_agent(
+            model,
+            handle_nested_stream,
+            force_places_tool=True,
+        )
+    finally:
+        await client.close()
+
+    assert [tool.name for tool in manager.tools] == ["places_agent"]
+    assert manager.model_settings.tool_choice is None
+    assert forced_manager.model_settings.tool_choice == "places_agent"
+    specialist = manager.tools[0]._agent_instance
+    assert specialist is not None
+    assert specialist.model_settings.tool_choice == "required"
+    assert [tool.name for tool in specialist.tools] == [
+        "search_google_places_text",
+        "search_google_places_nearby",
+    ]
+    assert set(manager.tools[0].params_json_schema["properties"]) == {"input"}
+
+
 @pytest.mark.asyncio
 async def test_agent_service_starts_without_calling_openrouter() -> None:
     service = AgentService(
-        OpenRouterSettings(api_key="test-key", model="openai/gpt-4.1-mini")
+        OpenRouterSettings(api_key="test-key", model="openai/gpt-4.1-mini"),
+        FakeGooglePlacesService(),
     )
     stream = service.stream("Hello", "test-session")
 
@@ -78,6 +216,119 @@ async def test_agent_service_starts_without_calling_openrouter() -> None:
     assert event.event == "agent_started"
     assert event.data["model"] == "openai/gpt-4.1-mini"
     assert event.data["session_id"] == "test-session"
+
+
+@pytest.mark.asyncio
+async def test_location_search_tool_returns_structured_google_results() -> None:
+    google_places = FakeGooglePlacesService()
+    context = RunContextWrapper(
+        context=AgentContext(google_places=google_places)
+    )
+
+    result = await execute_location_search(context, "Geylang Serai", "SG")
+
+    assert result.query == "Geylang Serai"
+    assert result.region_code == "SG"
+    assert result.match_count == 1
+    assert result.matches[0].place_id == "test-place-id"
+    assert result.matches[0].name == "Geylang Serai"
+    assert google_places.requests[0].max_results == 5
+    assert google_places.requests[0].language_code == "en"
+    assert google_places.requests[0].region_code == "SG"
+
+
+@pytest.mark.asyncio
+async def test_location_search_changes_context_for_explicit_region() -> None:
+    google_places = FakeGooglePlacesService()
+    context = RunContextWrapper(
+        context=AgentContext(google_places=google_places)
+    )
+
+    result = await execute_location_search(context, "Paris", "fr")
+
+    assert result.region_code == "FR"
+    assert context.context.region_code == "FR"
+    assert google_places.requests[0].region_code == "FR"
+    assert google_places.requests[0].language_code == "en"
+
+
+@pytest.mark.asyncio
+async def test_google_tool_sanitizes_escaped_model_arguments() -> None:
+    google_places = FakeGooglePlacesService()
+    context = RunContextWrapper(
+        context=AgentContext(google_places=google_places)
+    )
+
+    result = await execute_location_search(context, '\\"398371\\"', '\\"')
+
+    assert result.query == "398371"
+    assert result.region_code == "SG"
+    assert google_places.requests[0].query == "398371"
+    assert google_places.requests[0].region_code == "SG"
+
+
+@pytest.mark.asyncio
+async def test_location_search_tool_enforces_hard_call_limit() -> None:
+    google_places = FakeGooglePlacesService()
+    context = RunContextWrapper(
+        context=AgentContext(google_places=google_places)
+    )
+
+    for _ in range(MAX_PLACES_AGENT_TOOL_CALLS):
+        await execute_location_search(context, "Geylang Serai", "SG")
+
+    with pytest.raises(ToolCallLimitExceeded, match="tool-call limit reached"):
+        await execute_location_search(context, "Geylang Serai", "SG")
+
+    assert len(google_places.requests) == MAX_PLACES_AGENT_TOOL_CALLS
+
+
+@pytest.mark.asyncio
+async def test_nearby_tool_returns_structured_results() -> None:
+    google_places = FakeGooglePlacesService()
+    context = RunContextWrapper(
+        context=AgentContext(google_places=google_places)
+    )
+
+    nearby = await execute_nearby_search(
+        context,
+        latitude=1.3167,
+        longitude=103.8982,
+        included_types=["ramen_restaurant"],
+        region_code="SG",
+    )
+    assert nearby.matches[0].name == "Test Ramen"
+    assert nearby.matches[0].rating == 4.5
+
+
+def test_incomplete_answer_detection_requires_no_tool_call() -> None:
+    answer = "Calling the location search for Geylang Serai."
+
+    assert AgentService._needs_manager_retry(answer, tool_called=False) is True
+    assert AgentService._needs_manager_retry(answer, tool_called=True) is False
+    assert AgentService._needs_manager_retry("null", tool_called=False) is True
+    assert AgentService._needs_manager_retry(
+        "Here are some sushi spots:",
+        tool_called=False,
+        expressed_tool_intent=True,
+    ) is True
+    assert AgentService._needs_manager_retry(
+        "I need current results.",
+        tool_called=False,
+        needs_places_tool=True,
+    ) is True
+
+
+def test_reasoning_event_detects_explicit_places_tool_intent() -> None:
+    stream_event = SimpleNamespace(
+        type="raw_response_event",
+        data=SimpleNamespace(
+            type="response.reasoning_text.done",
+            text="I should call the places_agent tool with region SG.",
+        ),
+    )
+
+    assert AgentService._expresses_places_tool_intent(stream_event) is True
 
 
 def test_agent_chat_streams_server_sent_events() -> None:

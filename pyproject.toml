@@ -3,7 +3,7 @@ name = "nearby-locator"
 version = "0.1.0"
 description = "A typed API for finding places and retrieving Google Maps place details"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.115,<1",
     "httpx>=0.27,<1",

@@ -31,17 +31,18 @@ function scrollToBottom() {
 }
 
 function eventLabel(trace) {
-  if (trace.event === "raw_response_event" && trace.data.type) {
-    return trace.data.type;
-  }
-  if (trace.event === "agent_step" && trace.data.name) {
-    return trace.data.name;
-  }
   return trace.event.replaceAll("_", " ");
 }
 
-function isDeltaEvent(event, data) {
-  return event === "raw_response_event" && data.type?.endsWith(".delta");
+function isVisibleTrace(event) {
+  return new Set([
+    "agent_thinking",
+    "tool_call",
+    "tool_output",
+    "agent_output",
+    "agent_completed",
+    "agent_error",
+  ]).has(event);
 }
 
 function resizeComposer(event) {
@@ -97,7 +98,7 @@ async function sendMessage() {
       signal: activeController.signal,
       onEvent: ({ event, data }) => {
         if (requestSession !== sessionId.value) return;
-        if (!isDeltaEvent(event, data)) {
+        if (isVisibleTrace(event)) {
           assistantMessage.traces.push({
             id: crypto.randomUUID(),
             event,

@@ -1,8 +1,7 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 class AgentModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -26,6 +25,60 @@ class AgentChatRequest(AgentModel):
 
 class AgentAnswer(AgentModel):
     answer: str = Field(description="The agent's response to the user.")
+    needs_places_tool: bool = Field(
+        default=False,
+        description=(
+            "True only when live place data is required but places_agent was "
+            "not successfully called."
+        ),
+    )
+
+
+class PlaceCandidate(AgentModel):
+    place_id: str
+    name: Optional[str] = None
+    formatted_address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    primary_type: Optional[str] = None
+    types: List[str] = Field(default_factory=list)
+    rating: Optional[float] = None
+    user_rating_count: Optional[int] = None
+    google_maps_uri: Optional[str] = None
+    national_phone_number: Optional[str] = None
+    website_uri: Optional[str] = None
+    open_now: Optional[bool] = None
+    price_level: Optional[str] = None
+
+
+class LocationSearchToolResult(AgentModel):
+    query: str
+    region_code: str
+    match_count: int
+    matches: List[PlaceCandidate]
+
+
+class NearbySearchToolResult(AgentModel):
+    region_code: str
+    latitude: float
+    longitude: float
+    radius_meters: float
+    match_count: int
+    matches: List[PlaceCandidate]
+
+
+class PlaceSuggestion(AgentModel):
+    purpose: str = Field(
+        description="The role of this place, such as ramen or library."
+    )
+    place: PlaceCandidate
+
+
+class PlacesAgentOutput(AgentModel):
+    request: str
+    region_code: str
+    summary: str
+    suggestions: List[PlaceSuggestion] = Field(default_factory=list)
 
 
 class AgentStreamEvent(AgentModel):
