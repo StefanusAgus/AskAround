@@ -1,7 +1,7 @@
 [project]
 name = "nearby-locator"
 version = "0.1.0"
-description = "A typed API for finding places and retrieving Google Maps place details"
+description = "A typed API for text and nearby Google Maps place searches"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [

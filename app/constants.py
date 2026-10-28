@@ -269,24 +269,3 @@ SEARCH_FIELD_MASK = ",".join(
         "places.priceRange",
     ]
 )
-
-DETAIL_FIELD_MASK = ",".join(
-    [
-        "id",
-        "displayName",
-        "formattedAddress",
-        "location",
-        "types",
-        "primaryType",
-        "businessStatus",
-        "googleMapsUri",
-        "nationalPhoneNumber",
-        "websiteUri",
-        "currentOpeningHours",
-        "regularOpeningHours",
-        "rating",
-        "userRatingCount",
-        "priceLevel",
-        "priceRange"
-    ]
-)

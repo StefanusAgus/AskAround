@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Nearby Locator API",
-    description="Find Google Maps places and retrieve structured place details.",
+    description="Search Google Maps places by text or nearby location.",
     version="0.1.0",
     lifespan=lifespan,
 )

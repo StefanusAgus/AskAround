@@ -1,5 +1,3 @@
-from typing import Any
-
 from app.models import (
     Coordinates,
     NearbySearchRequest,
@@ -55,6 +53,3 @@ class FixtureGooglePlacesService:
             count=len(unique_places),
             places=unique_places,
         )
-
-    async def get_details(self, *_: Any, **__: Any) -> None:
-        raise AssertionError("Place Details is outside this evaluation scope")

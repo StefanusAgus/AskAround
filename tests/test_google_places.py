@@ -49,37 +49,6 @@ async def test_search_returns_ranked_candidates() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_details_returns_typed_place() -> None:
-    async def handler(request: httpx.Request) -> httpx.Response:
-        assert request.url.path == "/v1/places/place-id"
-        assert dict(request.url.params) == {
-            "languageCode": "en",
-            "regionCode": "SG",
-        }
-        return httpx.Response(
-            200,
-            json={
-                "id": "place-id",
-                "displayName": {"text": "Example Restaurant", "languageCode": "en"},
-                "rating": 4.6,
-                "userRatingCount": 120,
-                "regularOpeningHours": {
-                    "openNow": True,
-                    "weekdayDescriptions": ["Monday: 9:00 AM - 9:00 PM"],
-                },
-            },
-        )
-
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        service = GooglePlacesService("test-key", client)
-        result = await service.get_details("place-id")
-
-    assert result.display_name.language_code == "en"
-    assert result.rating == 4.6
-    assert result.regular_opening_hours.open_now is True
-
-
-@pytest.mark.asyncio
 async def test_nearby_search_sends_location_and_filters() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/v1/places:searchNearby"
@@ -148,4 +117,4 @@ async def test_google_error_is_exposed_clearly() -> None:
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         service = GooglePlacesService("bad-key", client)
         with pytest.raises(GooglePlacesError, match="API key is not authorized"):
-            await service.get_details("place-id")
+            await service.search(PlaceSearchRequest(query="Singapore"))

@@ -119,12 +119,6 @@ Invoke-RestMethod `
   -Body $body
 ```
 
-Use an `id` from the search response to retrieve place details:
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:8000/places/PLACE_ID
-```
-
 Find restaurants and cafes within 750 metres of a coordinate, ordered by
 distance:
 

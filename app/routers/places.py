@@ -1,13 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends
 
-from app.constants import DEFAULT_LANGUAGE_CODE, DEFAULT_REGION_CODE
 from app.dependencies import get_google_places_service
 from app.models import (
     NearbySearchRequest,
     NearbySearchResponse,
-    Place,
     PlaceSearchRequest,
     PlaceSearchResponse,
 )
@@ -30,21 +28,3 @@ async def search_nearby_places(
     service: Annotated[GooglePlacesService, Depends(get_google_places_service)],
 ) -> NearbySearchResponse:
     return await service.search_nearby(request)
-
-
-@router.get("/{place_id}", response_model=Place)
-async def get_place_details(
-    service: Annotated[GooglePlacesService, Depends(get_google_places_service)],
-    place_id: str = Path(min_length=1, description="Google Maps place ID"),
-    language_code: str = Query(
-        default=DEFAULT_LANGUAGE_CODE,
-        description="BCP-47 response language. Defaults to English.",
-    ),
-    region_code: str = Query(
-        default=DEFAULT_REGION_CODE,
-        min_length=2,
-        max_length=2,
-        description="Two-letter result region. Defaults to Singapore (SG).",
-    ),
-) -> Place:
-    return await service.get_details(place_id, language_code, region_code)

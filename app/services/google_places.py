@@ -1,15 +1,8 @@
 from typing import Any, Dict
-from urllib.parse import quote
 
 import httpx
 
-from app.constants import (
-    DEFAULT_LANGUAGE_CODE,
-    DEFAULT_REGION_CODE,
-    DETAIL_FIELD_MASK,
-    GOOGLE_PLACES_BASE_URL,
-    SEARCH_FIELD_MASK,
-)
+from app.constants import GOOGLE_PLACES_BASE_URL, SEARCH_FIELD_MASK
 from app.models import (
     Coordinates,
     NearbySearchRequest,
@@ -51,24 +44,6 @@ class GooglePlacesService:
             count=len(places),
             places=places,
         )
-
-    async def get_details(
-        self,
-        place_id: str,
-        language_code: str = DEFAULT_LANGUAGE_CODE,
-        region_code: str = DEFAULT_REGION_CODE,
-    ) -> Place:
-        safe_place_id = quote(place_id, safe="")
-        data = await self._request(
-            "GET",
-            f"/places/{safe_place_id}",
-            field_mask=DETAIL_FIELD_MASK,
-            params={
-                "languageCode": language_code,
-                "regionCode": region_code.upper(),
-            },
-        )
-        return Place.model_validate(data)
 
     async def search_nearby(
         self, request: NearbySearchRequest
