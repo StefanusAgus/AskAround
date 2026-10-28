@@ -21,6 +21,33 @@ and direct Google Maps links.
 
 ![AskAround place recommendations](./assets/main_output.PNG)
 
+## Architecture
+
+![AskAround architecture](./assets/architecture.svg)
+
+The browser sends chat requests to FastAPI and receives focused agent events
+over Server-Sent Events. The backend runs one OpenAI Agents SDK agent, which
+uses OpenRouter for inference, Google Places Text and Nearby Search as tools,
+and SQLite for conversation history. Evaluations run the same agent against
+mock place fixtures instead of Google.
+
+The diagram can be edited in diagrams.net using
+[`assets/architecture.drawio`](./assets/architecture.drawio).
+
+## Design decisions
+
+- One agent with two tools keeps orchestration small and observable.
+- Pydantic validates API, tool, and final-output boundaries.
+- SSE streams useful reasoning and tool events without token-delta noise.
+- Google credentials remain server-side, with explicit field and call limits.
+- Evals mock Google for repeatability; the target LLM remains real.
+
+## Assumptions
+
+- Responses default to English, Singapore (`SG`), and Singapore local time.
+- A request without a date is treated as a request for today.
+- Recommendation requests return three options unless the user specifies one.
+
 ## Evaluation snapshot
 
 The latest fixture-backed run used `openai/gpt-5.6-luna` without the optional
@@ -41,6 +68,9 @@ Model outputs can vary between runs. Follow the
 
 ## Setup
 
+Prerequisites: Python 3.14, [uv](https://docs.astral.sh/uv/), Node.js 22, and
+npm.
+
 1. In Google Cloud, enable **Places API (New)** and create a server-side API
    key. Restrict the key to Places API (New) and, for deployment, to the
    backend's IP addresses.
@@ -50,7 +80,8 @@ Model outputs can vary between runs. Follow the
    uv sync
    ```
 
-3. Set the API key for the current PowerShell session:
+3. Copy `.env.example` to `.env`, then replace the placeholder keys. You may
+   alternatively set them for the current PowerShell session:
 
    ```powershell
    $env:GOOGLE_MAPS_API_KEY = "your-api-key"
@@ -195,9 +226,36 @@ For complete setup instructions, available cases, reports, exit codes, cost
 considerations, and troubleshooting, see the
 **[Agent evaluation runbook](evals/README.md)**.
 
-Google bills Places API requests according to the highest SKU associated with
-the requested fields. The field masks are intentionally explicit in
-`app/constants.py`; review them before adding fields.
+## Test strategy
+
+| Layer | Coverage | Command |
+| --- | --- | --- |
+| Unit and validation | Models, graders, ranking, prompts, serialization | `uv run pytest` |
+| Integration | Google HTTP adapter with `MockTransport`; agent tools with fake Google data | `uv run pytest` |
+| API | Health, OpenAPI surface, and streamed agent endpoint through `TestClient` | `uv run pytest` |
+| Browser | Starter prompts, mocked SSE response rendering, trace visibility, and new-chat reset | `cd frontend; npm run test:e2e` |
+| AI evaluation | Five fixture-backed workflows with deterministic graders and optional LLM judge | `uv run python -m evals.runner` |
+
+Google and OpenRouter are not called by the software or browser tests. The
+evaluation runner mocks Google but calls the configured OpenRouter model.
+
+Latest local verification:
+
+```text
+Backend, API, validation, and eval-harness tests: 28 passed
+Frontend production build: passed
+Playwright browser tests: 2 passed
+Agent evaluations: 5/5 passed
+```
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on pushes to `main` and pull requests. It
+installs locked Python and frontend dependencies, runs `pytest`, builds the Vue
+application, installs Chromium, and runs the Playwright browser tests. Live
+agent evaluations are intentionally excluded because they require secrets,
+incur model usage, and are nondeterministic; they can be run manually before a
+release.
 
 ## Locale defaults and place types
 
