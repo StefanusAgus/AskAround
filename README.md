@@ -5,21 +5,39 @@ A conversational place-discovery project based on Agentic conversational workflo
 - Text Search resolves postcodes, addresses, landmarks, and text queries.
 - Nearby Search finds points of interest around known coordinates.
 
-## Screenshots
+## Interface
 
 ### Starter interface
 
 The interface displays three randomly selected place-discovery prompts from a
 catalogue of ten starters.
 
-![AskAround starter interface](assets/main_interface.PNG)
+![AskAround starter interface](./assets/main_interface.PNG)
 
 ### Place recommendations
 
 Responses include ranked options, ratings, addresses, prices, opening hours,
 and direct Google Maps links.
 
-![AskAround place recommendations](assets/main_output.PNG)
+![AskAround place recommendations](./assets/main_output.PNG)
+
+## Evaluation snapshot
+
+The latest fixture-backed run used `openai/gpt-5.6-luna` without the optional
+LLM judge. Google Places was mocked, while the configured model ran the real
+agent workflow.
+
+| Case | Task completion | Tool accuracy | Groundedness | Response quality | Score | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `library_near_postcode` | PASS | PASS | PASS | PASS | 100% | PASS |
+| `multi_stop_suntec` | PASS | PASS | PASS | PASS | 100% | PASS |
+| `nasi_lemak_type_reasoning` | PASS | PASS | PASS | PASS | 100% | PASS |
+| `hotpot_default_top_three` | PASS | PASS | PASS | PASS | 100% | PASS |
+| `location_not_found` | PASS | PASS | PASS | PASS | 100% | PASS |
+| **TOTAL** | **5/5 (100%)** | **5/5 (100%)** | **5/5 (100%)** | **5/5 (100%)** | **100% average** | **5/5 (100%)** |
+
+Model outputs can vary between runs. Follow the
+**[Agent evaluation runbook](evals/README.md)** to regenerate this snapshot.
 
 ## Setup
 
@@ -176,24 +194,6 @@ location_not_found` to run one scenario.
 For complete setup instructions, available cases, reports, exit codes, cost
 considerations, and troubleshooting, see the
 **[Agent evaluation runbook](evals/README.md)**.
-
-### Latest evaluation results
-
-The latest fixture-backed run used `openai/gpt-5.6-luna` without the optional
-LLM judge. Google Places was mocked, while the configured model ran the real
-agent workflow.
-
-| Case | Task completion | Tool accuracy | Groundedness | Response quality | Score | Result |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `library_near_postcode` | PASS | PASS | PASS | PASS | 100% | PASS |
-| `multi_stop_suntec` | PASS | PASS | PASS | PASS | 100% | PASS |
-| `nasi_lemak_type_reasoning` | PASS | PASS | PASS | PASS | 100% | PASS |
-| `hotpot_default_top_three` | PASS | PASS | PASS | PASS | 100% | PASS |
-| `location_not_found` | PASS | PASS | PASS | PASS | 100% | PASS |
-| **TOTAL** | **5/5 (100%)** | **5/5 (100%)** | **5/5 (100%)** | **5/5 (100%)** | **100% average** | **5/5 (100%)** |
-
-Model outputs can vary between runs. Use the command above to regenerate the
-current results for a model or prompt change.
 
 Google bills Places API requests according to the highest SKU associated with
 the requested fields. The field masks are intentionally explicit in
